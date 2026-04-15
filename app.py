@@ -4,7 +4,7 @@ Desarrollado para Coolify con prefix /facu-demo
 """
 import os
 from datetime import datetime
-from flask import Flask, render_template, jsonify, request, redirect
+from flask import Flask, render_template, jsonify, request
 from flask_cors import CORS
 from apscheduler.schedulers.background import BackgroundScheduler
 import logging
@@ -59,23 +59,20 @@ def trigger_break_reminder():
 # ==================== RUTAS ====================
 
 @app.route('/')
-def root_redirect():
-    """Redirige al prefix configurado"""
-    return redirect(f"{script_name}/")
-
-
 @app.route(f'{script_name}/')
 def index():
     """Página principal"""
     return render_template('index.html', prefix=script_name)
 
 
+@app.route('/health')
 @app.route(f'{script_name}/health')
 def health():
     """Endpoint de salud para Coolify"""
     return jsonify({'status': 'healthy', 'timestamp': datetime.now().isoformat()}), 200
 
 
+@app.route('/api/reminders', methods=['GET'])
 @app.route(f'{script_name}/api/reminders', methods=['GET'])
 def get_reminders():
     """Obtiene el estado actual de los recordatorios"""
@@ -86,6 +83,7 @@ def get_reminders():
     }), 200
 
 
+@app.route('/api/reminders/water', methods=['POST'])
 @app.route(f'{script_name}/api/reminders/water', methods=['POST'])
 def trigger_water():
     """Dispara manualmente un recordatorio de agua"""
@@ -97,6 +95,7 @@ def trigger_water():
     }), 200
 
 
+@app.route('/api/reminders/break', methods=['POST'])
 @app.route(f'{script_name}/api/reminders/break', methods=['POST'])
 def trigger_break():
     """Dispara manualmente un recordatorio de descanso"""
@@ -108,6 +107,7 @@ def trigger_break():
     }), 200
 
 
+@app.route('/api/config', methods=['GET'])
 @app.route(f'{script_name}/api/config', methods=['GET'])
 def get_config():
     """Obtiene la configuración de la aplicación"""
@@ -118,6 +118,7 @@ def get_config():
     }), 200
 
 
+@app.route('/api/config/intervals', methods=['PUT'])
 @app.route(f'{script_name}/api/config/intervals', methods=['PUT'])
 def update_intervals():
     """Actualiza los intervalos de recordatorios"""
@@ -148,6 +149,7 @@ def update_intervals():
         return jsonify({'status': 'error', 'message': str(e)}), 400
 
 
+@app.route('/api/reminders/reset', methods=['POST'])
 @app.route(f'{script_name}/api/reminders/reset', methods=['POST'])
 def reset_reminders():
     """Reinicia los contadores de recordatorios"""
