@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  facu-demo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: facu-demo-app
+    ports:
+      - "3000:3000"
+    environment:
+      FLASK_ENV: production
+      FLASK_HOST: 0.0.0.0
+      FLASK_PORT: 3000
+      WATER_REMINDER_INTERVAL: 30
+      BREAK_REMINDER_INTERVAL: 60
+      SCRIPT_NAME: /facu-demo
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/facu-demo/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
