@@ -108,6 +108,19 @@ TRACKS = [
     "Yas Marina Circuit",
 ]
 
+TEAMS = [
+    "Red Bull Racing",
+    "McLaren",
+    "Ferrari",
+    "Mercedes",
+    "Aston Martin",
+    "Alpine",
+    "Haas",
+    "Williams",
+    "AlphaTauri",
+    "Alfa Romeo",
+]
+
 
 def default_participants():
     return [f"Participante {idx}" for idx in range(1, 21)]
@@ -123,13 +136,21 @@ def next_monday(start=None):
 
 def build_default_state():
     configured_start = parse_iso_date(os.getenv("SEASON_START_DATE"))
+    participants = default_participants()
+    # Distribute participants across teams (2 per team for 20 participants and 10 teams)
+    teams_map = {}
+    for idx, name in enumerate(participants):
+        team_idx = idx % len(TEAMS)
+        teams_map[name] = TEAMS[team_idx]
+    
     return {
-        "participants": default_participants(),
+        "participants": participants,
         "season_start_date": (configured_start or next_monday()).isoformat(),
         "tracks": TRACKS,
         "results": {},
         "qualifying": {},
         "dates": {},
+        "teams": teams_map,
     }
 
 
@@ -161,6 +182,12 @@ def load_state():
     state["qualifying"] = state.get("qualifying", {})
     state["dates"] = state.get("dates", {})
     state["season_start_date"] = state.get("season_start_date", next_monday().isoformat())
+    # Ensure teams are assigned for all participants
+    existing_teams = state.get("teams", {})
+    new_teams = {}
+    for idx, name in enumerate(state["participants"]):
+        new_teams[name] = existing_teams.get(name, TEAMS[idx % len(TEAMS)])
+    state["teams"] = new_teams
     return state
 
 
@@ -284,10 +311,57 @@ def compute_leaderboard(state):
     return leaderboard
 
 
+def compute_teams_leaderboard(state, driver_leaderboard):
+    """Compute constructors championship standings from driver standings."""
+    teams_stats = {}
+    
+    # Initialize teams
+    for team_name in TEAMS:
+        teams_stats[team_name] = {
+            "name": team_name,
+            "points": 0,
+            "wins": 0,
+            "podiums": 0,
+            "top10": 0,
+            "drivers": [],
+        }
+    
+    # Aggregate driver stats by team
+    for driver in driver_leaderboard:
+        driver_name = driver["name"]
+        team_name = state["teams"].get(driver_name, "Unknown")
+        
+        if team_name in teams_stats:
+            teams_stats[team_name]["points"] += driver["points"]
+            teams_stats[team_name]["wins"] += driver["wins"]
+            teams_stats[team_name]["podiums"] += driver["podiums"]
+            teams_stats[team_name]["top10"] += driver["top10"]
+            teams_stats[team_name]["drivers"].append(driver_name)
+    
+    # Filter out empty teams and convert to list
+    teams_list = [team for team in teams_stats.values() if team["drivers"]]
+    
+    # Sort by points (then wins, podiums as tiebreakers)
+    teams_list.sort(
+        key=lambda item: (
+            -item["points"],
+            -item["wins"],
+            -item["podiums"],
+            item["name"].lower(),
+        )
+    )
+    
+    # Add rank
+    for idx, team in enumerate(teams_list, start=1):
+        team["rank"] = idx
+    
+    return teams_list
+
 def get_state_payload():
     state = load_state()
     schedule = build_schedule(state)
     leaderboard = compute_leaderboard(state)
+    teams_leaderboard = compute_teams_leaderboard(state, leaderboard)
     completed_races = sum(1 for race in schedule if race["has_result"])
     next_race = next((race for race in schedule if not race["has_result"]), None)
 
@@ -300,6 +374,8 @@ def get_state_payload():
         "qualifying": state["qualifying"],
         "dates": state["dates"],
         "leaderboard": leaderboard,
+        "teams": state["teams"],
+        "teams_leaderboard": teams_leaderboard,
         "completed_races": completed_races,
         "total_races": len(schedule),
         "next_race": next_race,
@@ -431,6 +507,32 @@ def api_reset_results():
     save_state(state)
     return jsonify({"status": "success", "message": "Se reiniciaron los resultados del campeonato."}), 200
 
+
+@app.route("/api/teams", methods=["POST"])
+@app.route(f"{script_name}/api/teams", methods=["POST"])
+@login_required
+def api_update_teams():
+    """Update team assignments for participants."""
+    data = request.get_json(silent=True) or {}
+    teams_map = data.get("teams", {})
+    
+    if not isinstance(teams_map, dict):
+        return jsonify({"status": "error", "message": "teams debe ser un diccionario de participante: equipo."}), 400
+    
+    state = load_state()
+    
+    # Validate that all participants have a team assignment
+    for participant in state["participants"]:
+        if participant not in teams_map:
+            return jsonify({"status": "error", "message": f"Falta asignar equipo a {participant}."}), 400
+        
+        assigned_team = teams_map[participant]
+        if assigned_team not in TEAMS:
+            return jsonify({"status": "error", "message": f"Equipo desconocido: {assigned_team}"}), 400
+    
+    state["teams"] = teams_map
+    save_state(state)
+    return jsonify({"status": "success", "message": "Equipos asignados correctamente."}), 200
 
 if __name__ == "__main__":
     host = os.getenv("FLASK_HOST", "0.0.0.0")

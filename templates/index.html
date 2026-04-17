@@ -173,7 +173,12 @@
             grid-column: span 7;
         }
 
+        .teams-card {
+            grid-column: span 4;
+        }
+
         .leaderboard-card,
+        .constructors-card,
         .calendar-card {
             grid-column: span 6;
         }
@@ -398,6 +403,16 @@
                     <button class="secondary" id="resetResultsBtn">Reiniciar resultados</button>
                 </div>
             </article>
+            <article class="card teams-card write-guard">
+                <h2>2b) Equipos / Constructores</h2>
+                <p class="caption">Asigna cada participante a un equipo para la tabla de constructores.</p>
+                <div id="teamsGrid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; max-height: 350px; overflow-y: auto; padding-right: 4px;">
+                </div>
+                <div class="button-bar" style="margin-top: 12px;">
+                    <button class="primary" id="saveTeamsBtn">Guardar equipos</button>
+                </div>
+            </article>
+
 
             <article class="card leaderboard-card">
                 <h2>3) Tabla de posiciones</h2>
@@ -419,6 +434,27 @@
                     </table>
                 </div>
             </article>
+            <article class="card constructors-card">
+                <h2>3b) Campeonato de Constructores</h2>
+                <p class="caption">Puntos sumados de ambos pilotos del equipo.</p>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Equipo</th>
+                                <th>Puntos</th>
+                                <th>Victorias</th>
+                                <th>Podios</th>
+                                <th>Top 10</th>
+                                <th>Pilotos</th>
+                            </tr>
+                        </thead>
+                        <tbody id="constructorsBody"></tbody>
+                    </table>
+                </div>
+            </article>
+
 
             <article class="card calendar-card">
                 <h2>4) Calendario vigente</h2>
@@ -633,6 +669,109 @@
             });
         }
 
+        function renderTeamsGrid() {
+            const grid = document.getElementById("teamsGrid");
+            grid.innerHTML = "";
+            
+            state.participants.forEach((name) => {
+                const container = document.createElement("div");
+                container.style.display = "flex";
+                container.style.flexDirection = "column";
+                container.style.gap = "4px";
+                
+                const label = document.createElement("label");
+                label.className = "small-muted";
+                label.textContent = name;
+                
+                const select = document.createElement("select");
+                select.dataset.participant = name;
+                
+                // Add empty option
+                const emptyOption = document.createElement("option");
+                emptyOption.value = "";
+                emptyOption.textContent = "- Sin equipo -";
+                select.appendChild(emptyOption);
+                
+                // Add team options
+                const availableTeams = ["Red Bull Racing", "McLaren", "Ferrari", "Mercedes", 
+                                       "Aston Martin", "Alpine", "Haas", "Williams", 
+                                       "AlphaTauri", "Alfa Romeo"];
+                availableTeams.forEach((team) => {
+                    const option = document.createElement("option");
+                    option.value = team;
+                    option.textContent = team;
+                    select.appendChild(option);
+                });
+                
+                // Set current team if assigned
+                if (state.teams && state.teams[name]) {
+                    select.value = state.teams[name];
+                }
+                
+                container.appendChild(label);
+                container.appendChild(select);
+                grid.appendChild(container);
+            });
+        }
+
+        function renderConstructorsLeaderboard() {
+            const body = document.getElementById("constructorsBody");
+            body.innerHTML = "";
+            
+            if (!state.teams_leaderboard || state.teams_leaderboard.length === 0) {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `<td colspan="7" style="text-align: center; color: var(--muted);">Sin datos de equipos</td>`;
+                body.appendChild(tr);
+                return;
+            }
+            
+            state.teams_leaderboard.forEach((team) => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${team.rank}</td>
+                    <td><strong>${team.name}</strong></td>
+                    <td><strong>${team.points}</strong></td>
+                    <td>${team.wins}</td>
+                    <td>${team.podiums}</td>
+                    <td>${team.top10}</td>
+                    <td style="font-size: 0.85rem; color: var(--muted);">${team.drivers.join(", ")}</td>
+                `;
+                body.appendChild(tr);
+            });
+        }
+
+        async function saveTeams() {
+            const teamsMap = {};
+            const selects = document.querySelectorAll("#teamsGrid select");
+            
+            // Validate all participants have teams
+            for (const select of selects) {
+                const participant = select.dataset.participant;
+                const team = select.value.trim();
+                
+                if (!team) {
+                    showStatus(`Debes asignar un equipo a ${participant}.`, "error");
+                    return;
+                }
+                
+                teamsMap[participant] = team;
+            }
+            
+            const response = await fetch(`${API_BASE}/teams`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ teams: teamsMap }),
+            });
+            
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || "No se pudieron guardar los equipos");
+            }
+            
+            showStatus(data.message, "success");
+            await fetchState();
+        }
+
         function renderHeaderMeta() {
             document.getElementById("metaCompleted").textContent = `Carreras completadas: ${state.completedRaces}/${state.totalRaces}`;
             if (state.nextRace) {
@@ -677,11 +816,15 @@
             state.results = data.results || {};
             state.qualifying = data.qualifying || {};
             state.dates = data.dates || {};
+            state.teams = data.teams || {};
+            state.teams_leaderboard = data.teams_leaderboard || [];
 
             document.getElementById("seasonStartDate").value = data.season_start_date;
             renderParticipants(state.participants);
             renderRaceSelect(state.schedule);
             renderLeaderboard(state.leaderboard);
+            renderTeamsGrid();
+            renderConstructorsLeaderboard();
             renderSchedule(state.schedule);
             renderHeaderMeta();
             updateAuthUI();
@@ -780,6 +923,7 @@
         }
 
         document.getElementById("saveParticipantsBtn").addEventListener("click", () => safeRun(saveParticipants));
+        document.getElementById("saveTeamsBtn").addEventListener("click", () => safeRun(saveTeams));
         document.getElementById("saveResultBtn").addEventListener("click", () => safeRun(saveRaceResult));
         document.getElementById("fillTemplateBtn").addEventListener("click", fillTemplate);
         document.getElementById("resetResultsBtn").addEventListener("click", () => safeRun(resetResults));
