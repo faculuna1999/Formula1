@@ -371,7 +371,8 @@
                 </div>
 
                 <div class="button-bar">
-                    <button class="primary" id="saveParticipantsBtn">Guardar participantes y reiniciar campeonato</button>
+                    <button class="primary" id="saveParticipantsBtn">Guardar participantes</button>
+                    <button class="secondary" id="restartChampionshipBtn">Reiniciar campeonato</button>
                 </div>
             </article>
 
@@ -405,7 +406,6 @@
                 <div class="button-bar">
                     <button class="secondary" id="fillTemplateBtn">Rellenar plantilla en ambos</button>
                     <button class="primary" id="saveResultBtn">Guardar</button>
-                    <button class="secondary" id="resetResultsBtn">Reiniciar resultados</button>
                 </div>
             </article>
             <article class="card teams-card write-guard">
@@ -955,6 +955,12 @@
             await fetchState();
         }
 
+        async function restartChampionship() {
+            const confirmed = window.confirm("Esto va a borrar resultados, qualy y fechas cargadas. ¿Continuar?");
+            if (!confirmed) return;
+            await resetResults();
+        }
+
         async function safeRun(taskFn) {
             try {
                 await taskFn();
@@ -966,10 +972,10 @@
         document.getElementById("addParticipantBtn").addEventListener("click", addParticipant);
         document.getElementById("removeParticipantBtn").addEventListener("click", removeParticipant);
         document.getElementById("saveParticipantsBtn").addEventListener("click", () => safeRun(saveParticipants));
+        document.getElementById("restartChampionshipBtn").addEventListener("click", () => safeRun(restartChampionship));
         document.getElementById("saveTeamsBtn").addEventListener("click", () => safeRun(saveTeams));
         document.getElementById("saveResultBtn").addEventListener("click", () => safeRun(saveRaceResult));
         document.getElementById("fillTemplateBtn").addEventListener("click", fillTemplate);
-        document.getElementById("resetResultsBtn").addEventListener("click", () => safeRun(resetResults));
 
         // Al cambiar de carrera en el select, precargar datos guardados
         document.getElementById("raceSelect").addEventListener("change", (e) => {

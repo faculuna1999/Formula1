@@ -281,6 +281,8 @@ def compute_leaderboard(state):
             continue
 
         for pos, name in enumerate(classification, start=1):
+            if name not in stats:
+                continue
             driver_stats = stats[name]
             driver_stats["points"] += POINTS_BY_POSITION.get(pos, 0)
             driver_stats["races_finished"] += 1
@@ -445,15 +447,17 @@ def api_update_participants():
         return jsonify({"status": "error", "message": "Fecha invalida. Usa formato YYYY-MM-DD."}), 400
 
     state = load_state()
+    existing_teams = state.get("teams", {})
     state["participants"] = participants
-    state["results"] = {}
-    state["qualifying"] = {}
-    state["dates"] = {}
+    state["teams"] = {
+        name: existing_teams.get(name, TEAMS[idx % len(TEAMS)])
+        for idx, name in enumerate(participants)
+    }
     if season_start_date is not None:
         state["season_start_date"] = season_start_date.isoformat()
 
     save_state(state)
-    return jsonify({"status": "success", "message": "Participantes guardados y campeonato reiniciado."}), 200
+    return jsonify({"status": "success", "message": "Participantes guardados correctamente."}), 200
 
 
 @app.route("/api/results", methods=["POST"])
