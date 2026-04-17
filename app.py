@@ -117,8 +117,8 @@ TEAMS = [
     "Alpine",
     "Haas",
     "Williams",
-    "AlphaTauri",
-    "Alfa Romeo",
+    "Racing Bulls",
+    "Audi",
 ]
 
 
