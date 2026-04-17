@@ -12,8 +12,7 @@ services:
       FLASK_ENV: production
       FLASK_HOST: 0.0.0.0
       FLASK_PORT: 3000
-      WATER_REMINDER_INTERVAL: 30
-      BREAK_REMINDER_INTERVAL: 60
+      SEASON_START_DATE: 2026-04-20
       SCRIPT_NAME: /facu-demo
     volumes:
       - ./logs:/app/logs

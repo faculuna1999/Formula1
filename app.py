@@ -1,206 +1,336 @@
-"""
-Aplicación de recordatorios de agua y descanso
-Desarrollado para Coolify con prefix /facu-demo
-"""
-import os
-from datetime import datetime
-from flask import Flask, render_template, jsonify, request
-from flask_cors import CORS
-from apscheduler.schedulers.background import BackgroundScheduler
-import logging
+"""Aplicacion de campeonato estilo Formula 1 para 20 participantes."""
 
-# Configuración de logging
+import json
+import logging
+import os
+from datetime import date, datetime, timedelta
+from pathlib import Path
+
+from flask import Flask, jsonify, render_template, request
+from flask_cors import CORS
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Inicializar Flask
 app = Flask(__name__)
 CORS(app)
 
-# Configurar el prefix para Coolify
-script_name = os.getenv('SCRIPT_NAME', 'facu-demo').strip()
-if not script_name.startswith('/'):
+script_name = os.getenv("SCRIPT_NAME", "facu-demo").strip()
+if not script_name.startswith("/"):
     script_name = f"/{script_name}"
-script_name = script_name.rstrip('/') or '/facu-demo'
-app.config['APPLICATION_ROOT'] = script_name
+script_name = script_name.rstrip("/") or "/facu-demo"
+app.config["APPLICATION_ROOT"] = script_name
 
-# Estado de recordatorios
-reminders = {
-    'water': {
-        'count': 0,
-        'last_reminder': None,
-        'interval': int(os.getenv('WATER_REMINDER_INTERVAL', 30))
-    },
-    'break': {
-        'count': 0,
-        'last_reminder': None,
-        'interval': int(os.getenv('BREAK_REMINDER_INTERVAL', 60))
-    }
+DATA_FILE = Path("data/season.json")
+POINTS_BY_POSITION = {
+    1: 25,
+    2: 18,
+    3: 15,
+    4: 12,
+    5: 10,
+    6: 8,
+    7: 6,
+    8: 4,
+    9: 2,
+    10: 1,
 }
 
-# Scheduler para recordatorios automáticos
-scheduler = BackgroundScheduler()
+TRACKS = [
+    "Bahrain International Circuit",
+    "Jeddah Corniche Circuit",
+    "Albert Park Circuit",
+    "Suzuka Circuit",
+    "Shanghai International Circuit",
+    "Miami International Autodrome",
+    "Autodromo Enzo e Dino Ferrari (Imola)",
+    "Circuit de Monaco",
+    "Circuit Gilles Villeneuve",
+    "Circuit de Barcelona-Catalunya",
+    "Red Bull Ring",
+    "Silverstone Circuit",
+    "Hungaroring",
+    "Circuit de Spa-Francorchamps",
+    "Circuit Zandvoort",
+    "Autodromo Nazionale Monza",
+    "Baku City Circuit",
+    "Marina Bay Street Circuit",
+    "Circuit of the Americas",
+    "Autodromo Hermanos Rodriguez",
+    "Interlagos (Sao Paulo)",
+    "Las Vegas Strip Circuit",
+    "Lusail International Circuit",
+    "Yas Marina Circuit",
+]
 
 
-def trigger_water_reminder():
-    """Desencadena recordatorio de agua"""
-    reminders['water']['count'] += 1
-    reminders['water']['last_reminder'] = datetime.now().isoformat()
-    logger.info(f"💧 ¡Recordatorio #{reminders['water']['count']}: Bebe agua!")
+def default_participants():
+    return [f"Participante {idx}" for idx in range(1, 21)]
 
 
-def trigger_break_reminder():
-    """Desencadena recordatorio de descanso"""
-    reminders['break']['count'] += 1
-    reminders['break']['last_reminder'] = datetime.now().isoformat()
-    logger.info(f"🚶 ¡Recordatorio #{reminders['break']['count']}: ¡Párate y descansa!")
+def next_monday(start=None):
+    today = start or date.today()
+    days_ahead = (7 - today.weekday()) % 7
+    if days_ahead == 0:
+        days_ahead = 7
+    return today + timedelta(days=days_ahead)
 
 
-# ==================== RUTAS ====================
-
-@app.route('/')
-@app.route(f'{script_name}/')
-def index():
-    """Página principal"""
-    return render_template('index.html', prefix=script_name)
-
-
-@app.route('/health')
-@app.route(f'{script_name}/health')
-def health():
-    """Endpoint de salud para Coolify"""
-    return jsonify({'status': 'healthy', 'timestamp': datetime.now().isoformat()}), 200
+def build_default_state():
+    configured_start = parse_iso_date(os.getenv("SEASON_START_DATE"))
+    return {
+        "participants": default_participants(),
+        "season_start_date": (configured_start or next_monday()).isoformat(),
+        "tracks": TRACKS,
+        "results": {},
+    }
 
 
-@app.route('/api/reminders', methods=['GET'])
-@app.route(f'{script_name}/api/reminders', methods=['GET'])
-def get_reminders():
-    """Obtiene el estado actual de los recordatorios"""
-    return jsonify({
-        'water': reminders['water'],
-        'break': reminders['break'],
-        'timestamp': datetime.now().isoformat()
-    }), 200
+def save_state(state):
+    DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
+    DATA_FILE.write_text(json.dumps(state, indent=2), encoding="utf-8")
 
 
-@app.route('/api/reminders/water', methods=['POST'])
-@app.route(f'{script_name}/api/reminders/water', methods=['POST'])
-def trigger_water():
-    """Dispara manualmente un recordatorio de agua"""
-    trigger_water_reminder()
-    return jsonify({
-        'status': 'success',
-        'message': '¡Recordatorio de agua enviado!',
-        'reminder': reminders['water']
-    }), 200
+def load_state():
+    if not DATA_FILE.exists():
+        state = build_default_state()
+        save_state(state)
+        return state
 
-
-@app.route('/api/reminders/break', methods=['POST'])
-@app.route(f'{script_name}/api/reminders/break', methods=['POST'])
-def trigger_break():
-    """Dispara manualmente un recordatorio de descanso"""
-    trigger_break_reminder()
-    return jsonify({
-        'status': 'success',
-        'message': '¡Recordatorio de descanso enviado!',
-        'reminder': reminders['break']
-    }), 200
-
-
-@app.route('/api/config', methods=['GET'])
-@app.route(f'{script_name}/api/config', methods=['GET'])
-def get_config():
-    """Obtiene la configuración de la aplicación"""
-    return jsonify({
-        'water_interval': reminders['water']['interval'],
-        'break_interval': reminders['break']['interval'],
-        'prefix': script_name
-    }), 200
-
-
-@app.route('/api/config/intervals', methods=['PUT'])
-@app.route(f'{script_name}/api/config/intervals', methods=['PUT'])
-def update_intervals():
-    """Actualiza los intervalos de recordatorios"""
     try:
-        data = request.get_json()
-        
-        if 'water_interval' in data:
-            reminders['water']['interval'] = int(data['water_interval'])
-            # Actualizar scheduler
-            if scheduler.get_job('water_reminder'):
-                scheduler.reschedule_job('water_reminder', trigger='interval', 
-                                       minutes=reminders['water']['interval'])
-        
-        if 'break_interval' in data:
-            reminders['break']['interval'] = int(data['break_interval'])
-            # Actualizar scheduler
-            if scheduler.get_job('break_reminder'):
-                scheduler.reschedule_job('break_reminder', trigger='interval',
-                                       minutes=reminders['break']['interval'])
-        
-        return jsonify({
-            'status': 'success',
-            'water_interval': reminders['water']['interval'],
-            'break_interval': reminders['break']['interval']
-        }), 200
-    except Exception as e:
-        logger.error(f"Error al actualizar intervalos: {e}")
-        return jsonify({'status': 'error', 'message': str(e)}), 400
+        state = json.loads(DATA_FILE.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        logger.warning("Archivo de estado invalido. Se recrea estado por defecto.")
+        state = build_default_state()
+        save_state(state)
+        return state
+
+    participants = state.get("participants", [])
+    if len(participants) != 20:
+        state["participants"] = default_participants()
+
+    state["tracks"] = state.get("tracks", TRACKS)
+    state["results"] = state.get("results", {})
+    state["season_start_date"] = state.get("season_start_date", next_monday().isoformat())
+    return state
 
 
-@app.route('/api/reminders/reset', methods=['POST'])
-@app.route(f'{script_name}/api/reminders/reset', methods=['POST'])
-def reset_reminders():
-    """Reinicia los contadores de recordatorios"""
-    reminders['water']['count'] = 0
-    reminders['break']['count'] = 0
-    reminders['water']['last_reminder'] = None
-    reminders['break']['last_reminder'] = None
-    
-    return jsonify({
-        'status': 'success',
-        'message': 'Contadores reiniciados',
-        'reminders': reminders
-    }), 200
+def normalize_participants(raw_names):
+    names = [name.strip() for name in raw_names if isinstance(name, str)]
+    if len(names) != 20:
+        return None, "Debes ingresar exactamente 20 participantes."
+    if any(not name for name in names):
+        return None, "Todos los nombres deben estar completos."
+
+    lowered = [name.lower() for name in names]
+    if len(set(lowered)) != 20:
+        return None, "Los nombres deben ser unicos."
+
+    return names, None
 
 
-# ==================== INICIALIZACIÓN ====================
+def parse_iso_date(raw):
+    try:
+        return datetime.strptime(raw, "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        return None
 
-def init_scheduler():
-    """Inicializa el scheduler de recordatorios"""
-    scheduler.add_job(
-        trigger_water_reminder,
-        'interval',
-        minutes=reminders['water']['interval'],
-        id='water_reminder',
-        name='Water Reminder'
+
+def build_schedule(state):
+    start = parse_iso_date(state.get("season_start_date")) or next_monday()
+    races = []
+    for idx, track_name in enumerate(state["tracks"]):
+        race_date = start + timedelta(days=7 * idx)
+        races.append(
+            {
+                "race_index": idx,
+                "round": idx + 1,
+                "track": track_name,
+                "date": race_date.isoformat(),
+                "has_result": str(idx) in state["results"],
+            }
+        )
+    return races
+
+
+def validate_classification(classification, participants):
+    if not isinstance(classification, list):
+        return "La clasificacion debe ser una lista de nombres."
+
+    cleaned = [item.strip() for item in classification if isinstance(item, str)]
+    if len(cleaned) != 20:
+        return "La clasificacion debe tener exactamente 20 posiciones."
+
+    if any(not name for name in cleaned):
+        return "La clasificacion contiene nombres vacios."
+
+    cleaned_set = set(cleaned)
+    participants_set = set(participants)
+    if cleaned_set != participants_set:
+        missing = sorted(participants_set - cleaned_set)
+        extras = sorted(cleaned_set - participants_set)
+        message_parts = []
+        if missing:
+            message_parts.append(f"Faltan participantes: {', '.join(missing)}")
+        if extras:
+            message_parts.append(f"Nombres no registrados: {', '.join(extras)}")
+        return "; ".join(message_parts)
+
+    if len(cleaned_set) != 20:
+        return "Hay nombres repetidos en la clasificacion."
+
+    return None
+
+
+def compute_leaderboard(state):
+    stats = {}
+    for name in state["participants"]:
+        stats[name] = {
+            "name": name,
+            "points": 0,
+            "wins": 0,
+            "podiums": 0,
+            "top10": 0,
+            "best_finish": 99,
+            "races_finished": 0,
+            "position_history": [],
+        }
+
+    for race_idx in range(len(state["tracks"])):
+        classification = state["results"].get(str(race_idx))
+        if not classification:
+            continue
+
+        for pos, name in enumerate(classification, start=1):
+            driver_stats = stats[name]
+            driver_stats["points"] += POINTS_BY_POSITION.get(pos, 0)
+            driver_stats["races_finished"] += 1
+            driver_stats["best_finish"] = min(driver_stats["best_finish"], pos)
+            driver_stats["position_history"].append(pos)
+            if pos == 1:
+                driver_stats["wins"] += 1
+            if pos <= 3:
+                driver_stats["podiums"] += 1
+            if pos <= 10:
+                driver_stats["top10"] += 1
+
+    leaderboard = list(stats.values())
+    leaderboard.sort(
+        key=lambda item: (
+            -item["points"],
+            -item["wins"],
+            -item["podiums"],
+            item["best_finish"],
+            item["name"].lower(),
+        )
     )
-    scheduler.add_job(
-        trigger_break_reminder,
-        'interval',
-        minutes=reminders['break']['interval'],
-        id='break_reminder',
-        name='Break Reminder'
-    )
-    scheduler.start()
-    logger.info("Scheduler iniciado ✅")
+
+    for idx, row in enumerate(leaderboard, start=1):
+        row["rank"] = idx
+        if row["best_finish"] == 99:
+            row["best_finish"] = None
+
+    return leaderboard
 
 
-if __name__ == '__main__':
-    # Asegurarse de que el directorio de templates existe
-    os.makedirs('templates', exist_ok=True)
-    os.makedirs('static', exist_ok=True)
-    
-    # Iniciar scheduler
-    init_scheduler()
-    
-    # Obtener configuración
-    host = os.getenv('FLASK_HOST', '0.0.0.0')
-    port = int(os.getenv('FLASK_PORT', 3000))
-    debug = os.getenv('FLASK_ENV', 'production') == 'development'
-    
-    logger.info(f"🚀 Iniciando aplicación en {host}:{port}")
-    logger.info(f"📍 Prefix: {script_name}")
-    
+def get_state_payload():
+    state = load_state()
+    schedule = build_schedule(state)
+    leaderboard = compute_leaderboard(state)
+    completed_races = sum(1 for race in schedule if race["has_result"])
+    next_race = next((race for race in schedule if not race["has_result"]), None)
+
+    return {
+        "participants": state["participants"],
+        "season_start_date": state["season_start_date"],
+        "points_system": POINTS_BY_POSITION,
+        "schedule": schedule,
+        "results": state["results"],
+        "leaderboard": leaderboard,
+        "completed_races": completed_races,
+        "total_races": len(schedule),
+        "next_race": next_race,
+        "prefix": script_name,
+    }
+
+
+@app.route("/")
+@app.route(f"{script_name}/")
+def index():
+    return render_template("index.html", prefix=script_name)
+
+
+@app.route("/health")
+@app.route(f"{script_name}/health")
+def health():
+    return jsonify({"status": "healthy", "timestamp": datetime.now().isoformat()}), 200
+
+
+@app.route("/api/state", methods=["GET"])
+@app.route(f"{script_name}/api/state", methods=["GET"])
+def api_state():
+    return jsonify(get_state_payload()), 200
+
+
+@app.route("/api/participants", methods=["POST"])
+@app.route(f"{script_name}/api/participants", methods=["POST"])
+def api_update_participants():
+    data = request.get_json(silent=True) or {}
+    participants, err = normalize_participants(data.get("participants", []))
+    if err:
+        return jsonify({"status": "error", "message": err}), 400
+
+    season_start_date = parse_iso_date(data.get("season_start_date"))
+    if data.get("season_start_date") and season_start_date is None:
+        return jsonify({"status": "error", "message": "Fecha invalida. Usa formato YYYY-MM-DD."}), 400
+
+    state = load_state()
+    state["participants"] = participants
+    state["results"] = {}
+    if season_start_date is not None:
+        state["season_start_date"] = season_start_date.isoformat()
+
+    save_state(state)
+    return jsonify({"status": "success", "message": "Participantes guardados y campeonato reiniciado."}), 200
+
+
+@app.route("/api/results", methods=["POST"])
+@app.route(f"{script_name}/api/results", methods=["POST"])
+def api_set_result():
+    data = request.get_json(silent=True) or {}
+
+    race_index = data.get("race_index")
+    if not isinstance(race_index, int):
+        return jsonify({"status": "error", "message": "race_index debe ser un numero entero."}), 400
+
+    state = load_state()
+    if race_index < 0 or race_index >= len(state["tracks"]):
+        return jsonify({"status": "error", "message": "race_index fuera de rango."}), 400
+
+    classification = data.get("classification", [])
+    validation_error = validate_classification(classification, state["participants"])
+    if validation_error:
+        return jsonify({"status": "error", "message": validation_error}), 400
+
+    state["results"][str(race_index)] = classification
+    save_state(state)
+
+    return jsonify({"status": "success", "message": "Resultado guardado correctamente."}), 200
+
+
+@app.route("/api/reset", methods=["POST"])
+@app.route(f"{script_name}/api/reset", methods=["POST"])
+def api_reset_results():
+    state = load_state()
+    state["results"] = {}
+    save_state(state)
+    return jsonify({"status": "success", "message": "Se reiniciaron los resultados del campeonato."}), 200
+
+
+if __name__ == "__main__":
+    host = os.getenv("FLASK_HOST", "0.0.0.0")
+    port = int(os.getenv("FLASK_PORT", 3000))
+    debug = os.getenv("FLASK_ENV", "production") == "development"
+
+    logger.info("Iniciando campeonato F1 en %s:%s", host, port)
+    logger.info("Prefix activo: %s", script_name)
     app.run(host=host, port=port, debug=debug)

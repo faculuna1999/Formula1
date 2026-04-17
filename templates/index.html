@@ -3,404 +3,574 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recordatorios de Salud - Facu Demo</title>
+    <title>Facu Demo - Campeonato Formula 1</title>
     <style>
+        :root {
+            --bg-a: #ffedd5;
+            --bg-b: #fde68a;
+            --ink: #1f2937;
+            --muted: #6b7280;
+            --surface: #ffffff;
+            --surface-alt: #fff7ed;
+            --accent: #ea580c;
+            --accent-dark: #c2410c;
+            --ok: #166534;
+            --ok-bg: #dcfce7;
+            --err: #991b1b;
+            --err-bg: #fee2e2;
+            --line: #fdba74;
+            --shadow: 0 16px 48px rgba(194, 65, 12, 0.16);
+        }
+
         * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+            color: var(--ink);
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            background:
+                radial-gradient(circle at 10% 10%, rgba(234, 88, 12, 0.22), transparent 30%),
+                radial-gradient(circle at 80% 20%, rgba(245, 158, 11, 0.2), transparent 35%),
+                linear-gradient(160deg, var(--bg-a), var(--bg-b));
             padding: 20px;
         }
 
-        .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            padding: 40px;
-            max-width: 600px;
+        .page {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            gap: 16px;
+        }
+
+        .hero {
+            background: linear-gradient(120deg, #111827, #374151);
+            color: #f9fafb;
+            border-radius: 22px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            top: -40px;
+            right: -30px;
+            width: 180px;
+            height: 180px;
+            background: radial-gradient(circle, rgba(234, 88, 12, 0.5), transparent 65%);
+            transform: rotate(12deg);
+        }
+
+        .hero h1 {
+            font-size: clamp(1.5rem, 2.5vw, 2.2rem);
+            margin-bottom: 8px;
+            letter-spacing: 0.4px;
+        }
+
+        .hero p {
+            color: #d1d5db;
+            max-width: 800px;
+        }
+
+        .hero-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .pill {
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.12);
+            font-size: 0.9rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 16px;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 2px solid var(--line);
+            border-radius: 18px;
+            padding: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        .card h2 {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+
+        .card p.caption {
+            color: var(--muted);
+            margin-bottom: 12px;
+            font-size: 0.92rem;
+        }
+
+        .participants-card {
+            grid-column: span 5;
+        }
+
+        .result-card {
+            grid-column: span 7;
+        }
+
+        .leaderboard-card,
+        .calendar-card {
+            grid-column: span 6;
+        }
+
+        .participants-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+            max-height: 420px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .participants-grid input {
             width: 100%;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #d1d5db;
+            background: #fff;
         }
 
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin: 12px 0;
         }
 
-        .header h1 {
-            color: #333;
-            font-size: 2.5em;
-            margin-bottom: 10px;
+        input[type="date"],
+        select,
+        textarea,
+        button {
+            font-family: inherit;
+            font-size: 0.95rem;
         }
 
-        .header p {
-            color: #666;
-            font-size: 1.1em;
+        input[type="date"],
+        select,
+        textarea {
+            width: 100%;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            padding: 10px;
+            background: #fff;
         }
 
-        .reminders-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 40px;
+        textarea {
+            min-height: 220px;
+            resize: vertical;
+            line-height: 1.4;
         }
 
-        .reminder-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 15px;
-            padding: 25px;
-            color: white;
-            text-align: center;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .reminder-card.water {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        }
-
-        .reminder-card.break {
-            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-        }
-
-        .reminder-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        }
-
-        .reminder-icon {
-            font-size: 3em;
-            margin-bottom: 10px;
-        }
-
-        .reminder-card h2 {
-            font-size: 1.5em;
-            margin-bottom: 10px;
-            font-weight: 600;
-        }
-
-        .reminder-count {
-            font-size: 2.5em;
-            font-weight: bold;
-            margin: 15px 0;
-        }
-
-        .reminder-time {
-            font-size: 0.9em;
-            opacity: 0.9;
-            margin-bottom: 15px;
-        }
-
-        .button-group {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 30px;
+        .button-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 12px;
         }
 
         button {
-            padding: 12px 20px;
             border: none;
-            border-radius: 10px;
-            font-size: 1em;
-            font-weight: 600;
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.3s ease;
-            width: 100%;
         }
 
-        .btn-trigger {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .primary {
+            background: var(--accent);
             color: white;
         }
 
-        .btn-trigger:hover {
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-            transform: translateY(-2px);
+        .primary:hover {
+            background: var(--accent-dark);
         }
 
-        .btn-trigger:active {
-            transform: translateY(0);
+        .secondary {
+            background: #e5e7eb;
+            color: #1f2937;
         }
 
-        .config-section {
-            background: #f8f9fa;
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 25px;
+        .secondary:hover {
+            background: #d1d5db;
         }
 
-        .config-section h3 {
-            color: #333;
-            margin-bottom: 20px;
-            font-size: 1.2em;
-        }
-
-        .config-item {
-            margin-bottom: 15px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .config-item label {
-            color: #666;
-            font-weight: 500;
-        }
-
-        .config-item input {
-            padding: 8px 12px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 1em;
-        }
-
-        .config-item input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .button-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-
-        .btn-secondary {
-            background: #E0E0E0;
-            color: #333;
-        }
-
-        .btn-secondary:hover {
-            background: #d0d0d0;
-        }
-
-        .status-message {
-            padding: 12px;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            text-align: center;
-            font-weight: 500;
+        .status {
             display: none;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 0.92rem;
+            margin-top: 10px;
         }
 
-        .status-message.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+        .status.success {
             display: block;
+            background: var(--ok-bg);
+            color: var(--ok);
         }
 
-        .status-message.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+        .status.error {
             display: block;
+            background: var(--err-bg);
+            color: var(--err);
         }
 
-        .info-box {
-            background: #e7f3ff;
-            border-left: 4px solid #4facfe;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 20px;
-            color: #0066cc;
-            font-size: 0.9em;
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.92rem;
         }
 
-        @media (max-width: 600px) {
-            .container {
-                padding: 20px;
-            }
+        th,
+        td {
+            border-bottom: 1px solid #fed7aa;
+            padding: 8px;
+            text-align: left;
+            white-space: nowrap;
+        }
 
-            .header h1 {
-                font-size: 2em;
-            }
+        th {
+            background: var(--surface-alt);
+            position: sticky;
+            top: 0;
+        }
 
-            .reminders-grid {
+        .table-wrap {
+            max-height: 400px;
+            overflow: auto;
+            border: 1px solid #ffedd5;
+            border-radius: 10px;
+        }
+
+        .small-muted {
+            color: var(--muted);
+            font-size: 0.86rem;
+        }
+
+        @media (max-width: 1024px) {
+            .participants-card,
+            .result-card,
+            .leaderboard-card,
+            .calendar-card {
+                grid-column: span 12;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .participants-grid {
                 grid-template-columns: 1fr;
             }
 
-            .config-item {
-                grid-template-columns: 1fr;
+            .hero {
+                padding: 18px;
             }
-        }
-
-        .loading {
-            opacity: 0.6;
-            pointer-events: none;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>💪 Recordatorios de Salud</h1>
-            <p>Mantén tu bienestar durante el día</p>
-        </div>
-
-        <div id="statusMessage" class="status-message"></div>
-
-        <div class="reminders-grid">
-            <div class="reminder-card water">
-                <div class="reminder-icon">💧</div>
-                <h2>Agua</h2>
-                <div class="reminder-count" id="waterCount">0</div>
-                <div class="reminder-time" id="waterTime">Nunca</div>
-                <button class="btn-trigger" onclick="triggerReminder('water')">
-                    Recordar Ahora
-                </button>
+    <main class="page">
+        <section class="hero">
+            <h1>Campeonato Formula 1 - 20 Participantes</h1>
+            <p>
+                Configura tus 20 jugadores, registra los resultados de cada carrera del calendario
+                y el sistema calculara los puntos automaticamente con la tabla oficial F1.
+            </p>
+            <div class="hero-meta">
+                <span class="pill" id="metaCompleted">Carreras completadas: 0/0</span>
+                <span class="pill" id="metaNextRace">Proxima carrera: -</span>
+                <span class="pill">Puntaje F1: 25-18-15-12-10-8-6-4-2-1</span>
             </div>
+        </section>
 
-            <div class="reminder-card break">
-                <div class="reminder-icon">🚶</div>
-                <h2>Descanso</h2>
-                <div class="reminder-count" id="breakCount">0</div>
-                <div class="reminder-time" id="breakTime">Nunca</div>
-                <button class="btn-trigger" onclick="triggerReminder('break')">
-                    Recordar Ahora
-                </button>
-            </div>
-        </div>
+        <section class="grid">
+            <article class="card participants-card">
+                <h2>1) Participantes</h2>
+                <p class="caption">Debes cargar exactamente 20 nombres unicos.</p>
 
-        <div class="config-section">
-            <h3>⚙️ Configuración</h3>
-            
-            <div class="config-item">
-                <label for="waterInterval">Intervalo de Agua (minutos):</label>
-                <input type="number" id="waterInterval" value="30" min="5" max="180">
-            </div>
+                <label class="small-muted" for="seasonStartDate">Fecha de inicio del campeonato (carreras semanales)</label>
+                <input type="date" id="seasonStartDate">
 
-            <div class="config-item">
-                <label for="breakInterval">Intervalo de Descanso (minutos):</label>
-                <input type="number" id="breakInterval" value="60" min="5" max="180">
-            </div>
+                <div class="participants-grid" id="participantsGrid"></div>
 
-            <div class="button-row">
-                <button class="btn-trigger" onclick="updateIntervals()">
-                    Guardar Configuración
-                </button>
-                <button class="btn-secondary" onclick="resetCounters()">
-                    Reiniciar Contadores
-                </button>
-            </div>
-        </div>
+                <div class="button-bar">
+                    <button class="primary" id="saveParticipantsBtn">Guardar participantes y reiniciar campeonato</button>
+                </div>
+            </article>
 
-        <div class="info-box">
-            <strong>💡 Tip:</strong> Los recordatorios se dispararán automáticamente según los intervalos configurados. 
-            También puedes dispararlos manualmente en cualquier momento.
-        </div>
-    </div>
+            <article class="card result-card">
+                <h2>2) Cargar resultado de carrera</h2>
+                <p class="caption">
+                    Selecciona la carrera y pega la clasificacion final, un nombre por linea en orden del 1 al 20.
+                </p>
+
+                <div class="row">
+                    <label class="small-muted" for="raceSelect">Carrera</label>
+                    <select id="raceSelect"></select>
+                </div>
+
+                <label class="small-muted" for="classificationInput">Clasificacion (20 lineas)</label>
+                <textarea id="classificationInput" placeholder="1) Participante 1&#10;2) Participante 2&#10;...&#10;20) Participante 20"></textarea>
+
+                <div class="button-bar">
+                    <button class="secondary" id="fillTemplateBtn">Rellenar plantilla actual</button>
+                    <button class="primary" id="saveResultBtn">Guardar resultado</button>
+                    <button class="secondary" id="resetResultsBtn">Reiniciar solo resultados</button>
+                </div>
+            </article>
+
+            <article class="card leaderboard-card">
+                <h2>3) Tabla de posiciones</h2>
+                <p class="caption">Desempate por puntos, victorias, podios y mejor posicion.</p>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Participante</th>
+                                <th>Puntos</th>
+                                <th>Victorias</th>
+                                <th>Podios</th>
+                                <th>Top 10</th>
+                                <th>Mejor posicion</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboardBody"></tbody>
+                    </table>
+                </div>
+            </article>
+
+            <article class="card calendar-card">
+                <h2>4) Calendario vigente</h2>
+                <p class="caption">Una carrera por semana en cada pista del calendario.</p>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Ronda</th>
+                                <th>Pista</th>
+                                <th>Fecha</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scheduleBody"></tbody>
+                    </table>
+                </div>
+            </article>
+        </section>
+
+        <div id="statusBox" class="status"></div>
+    </main>
 
     <script>
-        const API_PREFIX = '{{ prefix }}/api';
-        let updateInterval;
+        const API_BASE = "{{ prefix }}/api";
 
-        async function fetchReminders() {
-            try {
-                const response = await fetch(`${API_PREFIX}/reminders`);
-                const data = await response.json();
-                
-                document.getElementById('waterCount').textContent = data.water.count;
-                document.getElementById('breakCount').textContent = data.break.count;
-                
-                document.getElementById('waterTime').textContent = 
-                    data.water.last_reminder ? new Date(data.water.last_reminder).toLocaleTimeString('es-ES') : 'Nunca';
-                document.getElementById('breakTime').textContent = 
-                    data.break.last_reminder ? new Date(data.break.last_reminder).toLocaleTimeString('es-ES') : 'Nunca';
-                
-                document.getElementById('waterInterval').value = data.water.interval;
-                document.getElementById('breakInterval').value = data.break.interval;
-            } catch (error) {
-                console.error('Error al obtener recordatorios:', error);
-            }
-        }
+        const state = {
+            participants: [],
+            schedule: [],
+            leaderboard: [],
+            completedRaces: 0,
+            totalRaces: 0,
+            nextRace: null,
+        };
 
-        async function triggerReminder(type) {
-            try {
-                const url = type === 'water' 
-                    ? `${API_PREFIX}/reminders/water`
-                    : `${API_PREFIX}/reminders/break`;
-                
-                const response = await fetch(url, { method: 'POST' });
-                const data = await response.json();
-                
-                showMessage(data.message, 'success');
-                fetchReminders();
-            } catch (error) {
-                console.error('Error al disparar recordatorio:', error);
-                showMessage('Error al disparar el recordatorio', 'error');
-            }
-        }
-
-        async function updateIntervals() {
-            try {
-                const waterInterval = parseInt(document.getElementById('waterInterval').value);
-                const breakInterval = parseInt(document.getElementById('breakInterval').value);
-                
-                if (waterInterval < 5 || breakInterval < 5) {
-                    showMessage('Los intervalos deben ser al menos 5 minutos', 'error');
-                    return;
-                }
-                
-                const response = await fetch(`${API_PREFIX}/config/intervals`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        water_interval: waterInterval,
-                        break_interval: breakInterval
-                    })
-                });
-                
-                const data = await response.json();
-                showMessage('✅ Configuración guardada exitosamente', 'success');
-                fetchReminders();
-            } catch (error) {
-                console.error('Error al actualizar configuración:', error);
-                showMessage('Error al guardar la configuración', 'error');
-            }
-        }
-
-        async function resetCounters() {
-            try {
-                const response = await fetch(`${API_PREFIX}/reminders/reset`, { method: 'POST' });
-                const data = await response.json();
-                showMessage('✅ Contadores reiniciados', 'success');
-                fetchReminders();
-            } catch (error) {
-                console.error('Error al reiniciar contadores:', error);
-                showMessage('Error al reiniciar contadores', 'error');
-            }
-        }
-
-        function showMessage(message, type) {
-            const element = document.getElementById('statusMessage');
-            element.textContent = message;
-            element.className = `status-message ${type}`;
-            
+        function showStatus(message, type) {
+            const statusBox = document.getElementById("statusBox");
+            statusBox.textContent = message;
+            statusBox.className = `status ${type}`;
             setTimeout(() => {
-                element.className = 'status-message';
-            }, 3000);
+                statusBox.className = "status";
+            }, 3800);
         }
 
-        // Inicializar
-        document.addEventListener('DOMContentLoaded', () => {
-            fetchReminders();
-            updateInterval = setInterval(fetchReminders, 5000); // Actualizar cada 5 segundos
-        });
+        function renderParticipants(names) {
+            const grid = document.getElementById("participantsGrid");
+            grid.innerHTML = "";
+            names.forEach((name, idx) => {
+                const input = document.createElement("input");
+                input.type = "text";
+                input.maxLength = 40;
+                input.value = name;
+                input.placeholder = `Participante ${idx + 1}`;
+                input.dataset.index = String(idx);
+                grid.appendChild(input);
+            });
+        }
 
-        // Limpiar al descargar
-        window.addEventListener('beforeunload', () => {
-            if (updateInterval) clearInterval(updateInterval);
-        });
+        function renderRaceSelect(schedule) {
+            const select = document.getElementById("raceSelect");
+            select.innerHTML = "";
+            schedule.forEach((race) => {
+                const option = document.createElement("option");
+                option.value = String(race.race_index);
+                option.textContent = `R${race.round} - ${race.track} (${race.date})${race.has_result ? " [cargada]" : ""}`;
+                select.appendChild(option);
+            });
+        }
+
+        function renderLeaderboard(leaderboard) {
+            const body = document.getElementById("leaderboardBody");
+            body.innerHTML = "";
+            leaderboard.forEach((row) => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${row.rank}</td>
+                    <td>${row.name}</td>
+                    <td><strong>${row.points}</strong></td>
+                    <td>${row.wins}</td>
+                    <td>${row.podiums}</td>
+                    <td>${row.top10}</td>
+                    <td>${row.best_finish ?? "-"}</td>
+                `;
+                body.appendChild(tr);
+            });
+        }
+
+        function renderSchedule(schedule) {
+            const body = document.getElementById("scheduleBody");
+            body.innerHTML = "";
+            schedule.forEach((race) => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${race.round}</td>
+                    <td>${race.track}</td>
+                    <td>${race.date}</td>
+                    <td>${race.has_result ? "Completada" : "Pendiente"}</td>
+                `;
+                body.appendChild(tr);
+            });
+        }
+
+        function renderHeaderMeta() {
+            document.getElementById("metaCompleted").textContent = `Carreras completadas: ${state.completedRaces}/${state.totalRaces}`;
+            if (state.nextRace) {
+                document.getElementById("metaNextRace").textContent = `Proxima carrera: R${state.nextRace.round} - ${state.nextRace.track}`;
+            } else {
+                document.getElementById("metaNextRace").textContent = "Proxima carrera: temporada finalizada";
+            }
+        }
+
+        function getParticipantInputs() {
+            const inputs = [...document.querySelectorAll("#participantsGrid input")];
+            return inputs.map((input) => input.value.trim());
+        }
+
+        function parseClassificationText(raw) {
+            return raw
+                .split("\n")
+                .map((line) => line.trim())
+                .filter((line) => line.length > 0)
+                .map((line) => line.replace(/^\d+\)\s*/, ""));
+        }
+
+        function fillTemplate() {
+            const area = document.getElementById("classificationInput");
+            area.value = state.participants.map((name, idx) => `${idx + 1}) ${name}`).join("\n");
+        }
+
+        async function fetchState() {
+            const response = await fetch(`${API_BASE}/state`);
+            if (!response.ok) {
+                throw new Error("No se pudo cargar el estado del campeonato");
+            }
+
+            const data = await response.json();
+            state.participants = data.participants;
+            state.schedule = data.schedule;
+            state.leaderboard = data.leaderboard;
+            state.completedRaces = data.completed_races;
+            state.totalRaces = data.total_races;
+            state.nextRace = data.next_race;
+
+            document.getElementById("seasonStartDate").value = data.season_start_date;
+            renderParticipants(state.participants);
+            renderRaceSelect(state.schedule);
+            renderLeaderboard(state.leaderboard);
+            renderSchedule(state.schedule);
+            renderHeaderMeta();
+        }
+
+        async function saveParticipants() {
+            const participants = getParticipantInputs();
+            const seasonStartDate = document.getElementById("seasonStartDate").value;
+
+            const response = await fetch(`${API_BASE}/participants`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ participants, season_start_date: seasonStartDate }),
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || "No se pudo guardar participantes");
+            }
+
+            showStatus(data.message, "success");
+            document.getElementById("classificationInput").value = "";
+            await fetchState();
+        }
+
+        async function saveRaceResult() {
+            const raceIndex = Number(document.getElementById("raceSelect").value);
+            const classification = parseClassificationText(document.getElementById("classificationInput").value);
+
+            const response = await fetch(`${API_BASE}/results`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ race_index: raceIndex, classification }),
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || "No se pudo guardar resultado");
+            }
+
+            showStatus(data.message, "success");
+            await fetchState();
+        }
+
+        async function resetResults() {
+            const response = await fetch(`${API_BASE}/reset`, { method: "POST" });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || "No se pudo reiniciar");
+            }
+
+            showStatus(data.message, "success");
+            document.getElementById("classificationInput").value = "";
+            await fetchState();
+        }
+
+        async function safeRun(taskFn) {
+            try {
+                await taskFn();
+            } catch (error) {
+                showStatus(error.message || "Ocurrio un error", "error");
+            }
+        }
+
+        document.getElementById("saveParticipantsBtn").addEventListener("click", () => safeRun(saveParticipants));
+        document.getElementById("saveResultBtn").addEventListener("click", () => safeRun(saveRaceResult));
+        document.getElementById("fillTemplateBtn").addEventListener("click", fillTemplate);
+        document.getElementById("resetResultsBtn").addEventListener("click", () => safeRun(resetResults));
+
+        safeRun(fetchState);
     </script>
 </body>
 </html>

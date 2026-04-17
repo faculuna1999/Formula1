@@ -45,3 +45,6 @@ logs/
 
 # Coolify
 .coolify/
+
+# Estado local de campeonato
+data/*.json
