@@ -192,11 +192,9 @@ def load_state():
 
 
 def normalize_participants(raw_names):
-    names = [name.strip() for name in raw_names if isinstance(name, str)]
+    names = [name.strip() for name in raw_names if isinstance(name, str) and name.strip()]
     if len(names) < 2 or len(names) > 20:
         return None, "Debes ingresar entre 2 y 20 participantes."
-    if any(not name for name in names):
-        return None, "Todos los nombres deben estar completos."
 
     lowered = [name.lower() for name in names]
     if len(set(lowered)) != len(names):
@@ -442,6 +440,10 @@ def api_update_participants():
     if err:
         return jsonify({"status": "error", "message": err}), 400
 
+    provided_teams = data.get("teams")
+    if provided_teams is not None and not isinstance(provided_teams, dict):
+        return jsonify({"status": "error", "message": "teams debe ser un diccionario de participante: equipo."}), 400
+
     season_start_date = parse_iso_date(data.get("season_start_date"))
     if data.get("season_start_date") and season_start_date is None:
         return jsonify({"status": "error", "message": "Fecha invalida. Usa formato YYYY-MM-DD."}), 400
@@ -449,10 +451,13 @@ def api_update_participants():
     state = load_state()
     existing_teams = state.get("teams", {})
     state["participants"] = participants
-    state["teams"] = {
-        name: existing_teams.get(name, TEAMS[idx % len(TEAMS)])
-        for idx, name in enumerate(participants)
-    }
+    new_teams = {}
+    for idx, name in enumerate(participants):
+        preferred_team = (provided_teams or {}).get(name)
+        if preferred_team is not None and preferred_team not in TEAMS:
+            return jsonify({"status": "error", "message": f"Equipo desconocido: {preferred_team}"}), 400
+        new_teams[name] = preferred_team or existing_teams.get(name, TEAMS[idx % len(TEAMS)])
+    state["teams"] = new_teams
     if season_start_date is not None:
         state["season_start_date"] = season_start_date.isoformat()
 
