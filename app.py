@@ -123,7 +123,7 @@ TEAMS = [
 
 
 def default_participants():
-    return [f"Participante {idx}" for idx in range(1, 21)]
+    return []
 
 
 def next_monday(start=None):
@@ -193,13 +193,13 @@ def load_state():
 
 def normalize_participants(raw_names):
     names = [name.strip() for name in raw_names if isinstance(name, str)]
-    if len(names) != 20:
-        return None, "Debes ingresar exactamente 20 participantes."
+    if len(names) < 2 or len(names) > 20:
+        return None, "Debes ingresar entre 2 y 20 participantes."
     if any(not name for name in names):
         return None, "Todos los nombres deben estar completos."
 
     lowered = [name.lower() for name in names]
-    if len(set(lowered)) != 20:
+    if len(set(lowered)) != len(names):
         return None, "Los nombres deben ser unicos."
 
     return names, None
@@ -236,8 +236,9 @@ def validate_classification(classification, participants):
         return "La clasificacion debe ser una lista de nombres."
 
     cleaned = [item.strip() for item in classification if isinstance(item, str)]
-    if len(cleaned) != 20:
-        return "La clasificacion debe tener exactamente 20 posiciones."
+    num_participants = len(participants)
+    if len(cleaned) != num_participants:
+        return f"La clasificacion debe tener exactamente {num_participants} posiciones."
 
     if any(not name for name in cleaned):
         return "La clasificacion contiene nombres vacios."
@@ -254,7 +255,7 @@ def validate_classification(classification, participants):
             message_parts.append(f"Nombres no registrados: {', '.join(extras)}")
         return "; ".join(message_parts)
 
-    if len(cleaned_set) != 20:
+    if len(cleaned_set) != num_participants:
         return "Hay nombres repetidos en la clasificacion."
 
     return None

@@ -358,12 +358,17 @@
         <section class="grid">
             <article class="card participants-card write-guard">
                 <h2>1) Participantes</h2>
-                <p class="caption">Debes cargar exactamente 20 nombres unicos.</p>
+                <p class="caption">Carga entre 2 y 20 nombres unicos. Puedes agregar o quitar participantes.</p>
 
                 <label class="small-muted" for="seasonStartDate">Fecha de inicio del campeonato (carreras semanales)</label>
                 <input type="date" id="seasonStartDate">
 
                 <div class="participants-grid" id="participantsGrid"></div>
+
+                <div class="button-bar" style="margin-bottom: 8px;">
+                    <button class="secondary" id="addParticipantBtn">+ Agregar</button>
+                    <button class="secondary" id="removeParticipantBtn">- Quitar</button>
+                </div>
 
                 <div class="button-bar">
                     <button class="primary" id="saveParticipantsBtn">Guardar participantes y reiniciar campeonato</button>
@@ -615,6 +620,42 @@
             });
         }
 
+        function addParticipant() {
+            const inputs = document.querySelectorAll("#participantsGrid input");
+            if (inputs.length >= 20) {
+                showStatus("No puedes agregar más de 20 participantes.", "error");
+                return;
+            }
+            const newInputs = Array.from(inputs).map(inp => inp.value.trim());
+            newInputs.push("");
+            renderParticipantsEditable(newInputs);
+        }
+
+        function removeParticipant() {
+            const inputs = document.querySelectorAll("#participantsGrid input");
+            if (inputs.length <= 2) {
+                showStatus("Debes tener al menos 2 participantes.", "error");
+                return;
+            }
+            const newInputs = Array.from(inputs).map(inp => inp.value.trim());
+            newInputs.pop();
+            renderParticipantsEditable(newInputs);
+        }
+
+        function renderParticipantsEditable(names) {
+            const grid = document.getElementById("participantsGrid");
+            grid.innerHTML = "";
+            names.forEach((name, idx) => {
+                const input = document.createElement("input");
+                input.type = "text";
+                input.maxLength = 40;
+                input.value = name;
+                input.placeholder = `Participante ${idx + 1}`;
+                input.dataset.index = String(idx);
+                grid.appendChild(input);
+            });
+        }
+
         function renderRaceSelect(schedule) {
             const select = document.getElementById("raceSelect");
             const current = select.value;
@@ -820,7 +861,7 @@
             state.teams_leaderboard = data.teams_leaderboard || [];
 
             document.getElementById("seasonStartDate").value = data.season_start_date;
-            renderParticipants(state.participants);
+            renderParticipantsEditable(state.participants.length > 0 ? state.participants : []);
             renderRaceSelect(state.schedule);
             renderLeaderboard(state.leaderboard);
             renderTeamsGrid();
@@ -922,6 +963,8 @@
             }
         }
 
+        document.getElementById("addParticipantBtn").addEventListener("click", addParticipant);
+        document.getElementById("removeParticipantBtn").addEventListener("click", removeParticipant);
         document.getElementById("saveParticipantsBtn").addEventListener("click", () => safeRun(saveParticipants));
         document.getElementById("saveTeamsBtn").addEventListener("click", () => safeRun(saveTeams));
         document.getElementById("saveResultBtn").addEventListener("click", () => safeRun(saveRaceResult));
@@ -940,7 +983,10 @@
             updateAuthUI();
         });
 
-        safeRun(fetchState);
+        safeRun(fetchState).catch(() => {
+            // On first load or error, show empty grid
+            renderParticipantsEditable([]);
+        });
     </script>
 </body>
 </html>
