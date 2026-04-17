@@ -1,12 +1,15 @@
 """Aplicacion de campeonato estilo Formula 1 para 20 participantes."""
 
+import hashlib
 import json
 import logging
 import os
+import secrets
 from datetime import date, datetime, timedelta
+from functools import wraps
 from pathlib import Path
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, session
 from flask_cors import CORS
 
 logging.basicConfig(level=logging.INFO)
@@ -14,6 +17,25 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)
+
+# Clave secreta para firmar sesiones (se genera aleatoria si no se configura)
+app.secret_key = os.getenv("SECRET_KEY") or secrets.token_hex(32)
+
+# Credenciales de acceso configurables por variables de entorno
+ADMIN_USER = os.getenv("ADMIN_USER", "admin")
+_raw_password = os.getenv("ADMIN_PASSWORD", "f1demo2025")
+ADMIN_PASSWORD_HASH = hashlib.sha256(_raw_password.encode()).hexdigest()
+
+
+def login_required(f):
+    """Decorador que protege endpoints de escritura."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("authenticated"):
+            return jsonify({"status": "error", "message": "Se requiere autenticacion.", "auth_required": True}), 401
+        return f(*args, **kwargs)
+    return decorated
+
 
 script_name = os.getenv("SCRIPT_NAME", "facu-demo").strip()
 if not script_name.startswith("/"):
@@ -291,6 +313,35 @@ def index():
     return render_template("index.html", prefix=script_name)
 
 
+@app.route("/api/login", methods=["POST"])
+@app.route(f"{script_name}/api/login", methods=["POST"])
+def api_login():
+    data = request.get_json(silent=True) or {}
+    username = (data.get("username") or "").strip()
+    password = data.get("password") or ""
+    password_hash = hashlib.sha256(password.encode()).hexdigest()
+
+    if username == ADMIN_USER and password_hash == ADMIN_PASSWORD_HASH:
+        session["authenticated"] = True
+        session.permanent = False
+        return jsonify({"status": "success", "message": "Sesion iniciada."}), 200
+
+    return jsonify({"status": "error", "message": "Usuario o contraseña incorrectos."}), 401
+
+
+@app.route("/api/logout", methods=["POST"])
+@app.route(f"{script_name}/api/logout", methods=["POST"])
+def api_logout():
+    session.clear()
+    return jsonify({"status": "success", "message": "Sesion cerrada."}), 200
+
+
+@app.route("/api/auth-status", methods=["GET"])
+@app.route(f"{script_name}/api/auth-status", methods=["GET"])
+def api_auth_status():
+    return jsonify({"authenticated": bool(session.get("authenticated"))}), 200
+
+
 @app.route("/health")
 @app.route(f"{script_name}/health")
 def health():
@@ -305,6 +356,7 @@ def api_state():
 
 @app.route("/api/participants", methods=["POST"])
 @app.route(f"{script_name}/api/participants", methods=["POST"])
+@login_required
 def api_update_participants():
     data = request.get_json(silent=True) or {}
     participants, err = normalize_participants(data.get("participants", []))
@@ -329,6 +381,7 @@ def api_update_participants():
 
 @app.route("/api/results", methods=["POST"])
 @app.route(f"{script_name}/api/results", methods=["POST"])
+@login_required
 def api_set_result():
     data = request.get_json(silent=True) or {}
 
@@ -369,6 +422,7 @@ def api_set_result():
 
 @app.route("/api/reset", methods=["POST"])
 @app.route(f"{script_name}/api/reset", methods=["POST"])
+@login_required
 def api_reset_results():
     state = load_state()
     state["results"] = {}

@@ -122,6 +122,49 @@
             font-size: 0.92rem;
         }
 
+        /* ---- Modal de login ---- */
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.75);
+            z-index: 999;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-backdrop.open { display: flex; }
+        .modal {
+            background: #111318;
+            border: 2px solid var(--accent);
+            border-radius: 18px;
+            padding: 32px;
+            width: 100%;
+            max-width: 380px;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.7);
+        }
+        .modal h2 { margin-bottom: 20px; color: #f9fafb; font-size: 1.4rem; }
+        .modal label { display: block; color: var(--muted); font-size: 0.88rem; margin-bottom: 4px; margin-top: 14px; }
+        .modal input {
+            width: 100%; padding: 10px 12px;
+            border: 1px solid #353b48; border-radius: 10px;
+            background: #0f1117; color: #f3f4f6;
+            font-size: 1rem;
+        }
+        .modal input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+        .modal .modal-error { color: #fca5a5; font-size: 0.88rem; margin-top: 10px; min-height: 1.2em; }
+        .modal .btn-bar { display: flex; gap: 10px; margin-top: 20px; }
+        /* ---- Auth badge ---- */
+        .auth-badge {
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px 14px; border-radius: 999px;
+            font-size: 0.88rem; font-weight: 600;
+            cursor: pointer; border: none;
+            transition: background 0.2s;
+        }
+        .auth-badge.logged-in  { background: #052e16; color: #86efac; }
+        .auth-badge.logged-out { background: #450a0a; color: #fca5a5; }
+        .auth-badge.logged-out:hover { background: #7f1d1d; }
+
         .participants-card {
             grid-column: span 5;
         }
@@ -303,11 +346,12 @@
                 <span class="pill" id="metaCompleted">Carreras completadas: 0/0</span>
                 <span class="pill" id="metaNextRace">Proxima carrera: -</span>
                 <span class="pill">Puntaje F1: 25-18-15-12-10-8-6-4-2-1</span>
+                <button class="auth-badge logged-out" id="authBadge" onclick="handleAuthClick()">🔒 Iniciar sesion</button>
             </div>
         </section>
 
         <section class="grid">
-            <article class="card participants-card">
+            <article class="card participants-card write-guard">
                 <h2>1) Participantes</h2>
                 <p class="caption">Debes cargar exactamente 20 nombres unicos.</p>
 
@@ -321,7 +365,7 @@
                 </div>
             </article>
 
-            <article class="card result-card">
+            <article class="card result-card write-guard">
                 <h2>2) Cargar resultado de carrera</h2>
                 <p class="caption">
                     Selecciona la carrera, escribi la fecha y carga clasificacion y/o resultado. Podés guardar uno sin el otro.
@@ -399,10 +443,107 @@
         <div id="statusBox" class="status"></div>
     </main>
 
+    <!-- Modal de login -->
+    <div class="modal-backdrop" id="loginModal">
+        <div class="modal">
+            <h2>🔐 Iniciar sesion</h2>
+            <label for="loginUser">Usuario</label>
+            <input type="text" id="loginUser" placeholder="admin" autocomplete="username">
+            <label for="loginPass">Contraseña</label>
+            <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+            <div class="modal-error" id="loginError"></div>
+            <div class="btn-bar">
+                <button class="primary" id="loginBtn">Entrar</button>
+                <button class="secondary" onclick="closeLoginModal()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const API_BASE = "{{ prefix }}/api";
+        let isAuthenticated = false;
 
-        const state = {
+        // ===================== AUTH =====================
+        function updateAuthUI() {
+            const badge = document.getElementById("authBadge");
+            const writeSections = document.querySelectorAll(".write-guard");
+            if (isAuthenticated) {
+                badge.textContent = "✅ Sesion activa — Cerrar sesion";
+                badge.className = "auth-badge logged-in";
+                writeSections.forEach(el => el.style.opacity = "1");
+                writeSections.forEach(el => el.style.pointerEvents = "auto");
+            } else {
+                badge.textContent = "🔒 Iniciar sesion";
+                badge.className = "auth-badge logged-out";
+                writeSections.forEach(el => el.style.opacity = "0.35");
+                writeSections.forEach(el => el.style.pointerEvents = "none");
+            }
+        }
+
+        function handleAuthClick() {
+            if (isAuthenticated) {
+                safeRun(logout);
+            } else {
+                openLoginModal();
+            }
+        }
+
+        function openLoginModal() {
+            document.getElementById("loginModal").classList.add("open");
+            document.getElementById("loginUser").focus();
+            document.getElementById("loginError").textContent = "";
+        }
+        function closeLoginModal() {
+            document.getElementById("loginModal").classList.remove("open");
+            document.getElementById("loginPass").value = "";
+        }
+
+        async function doLogin() {
+            const username = document.getElementById("loginUser").value.trim();
+            const password = document.getElementById("loginPass").value;
+            document.getElementById("loginError").textContent = "";
+
+            if (!username || !password) {
+                document.getElementById("loginError").textContent = "Completa usuario y contraseña.";
+                return;
+            }
+
+            const res = await fetch(`${API_BASE}/login`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                isAuthenticated = true;
+                updateAuthUI();
+                closeLoginModal();
+                showStatus("Sesion iniciada correctamente.", "success");
+            } else {
+                document.getElementById("loginError").textContent = data.message || "Error al iniciar sesion.";
+            }
+        }
+
+        async function logout() {
+            await fetch(`${API_BASE}/logout`, { method: "POST" });
+            isAuthenticated = false;
+            updateAuthUI();
+            showStatus("Sesion cerrada.", "success");
+        }
+
+        // Enter en el modal envía el login
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" && document.getElementById("loginModal").classList.contains("open")) {
+                doLogin();
+            }
+        });
+        document.getElementById("loginBtn").addEventListener("click", doLogin);
+        // Cerrar modal al click fuera
+        document.getElementById("loginModal").addEventListener("click", (e) => {
+            if (e.target === e.currentTarget) closeLoginModal();
+        });
+
+        // ===================== ESTADO =====================
             participants: [],
             schedule: [],
             leaderboard: [],
@@ -541,8 +682,7 @@
             renderRaceSelect(state.schedule);
             renderLeaderboard(state.leaderboard);
             renderSchedule(state.schedule);
-            renderHeaderMeta();
-        }
+            renderHeaderMeta();            updateAuthUI();        }
 
         function selectRace(raceIndex) {
             const select = document.getElementById("raceSelect");
@@ -644,6 +784,13 @@
         // Al cambiar de carrera en el select, precargar datos guardados
         document.getElementById("raceSelect").addEventListener("change", (e) => {
             selectRace(Number(e.target.value));
+        });
+
+        safeRun(async () => {
+            const res = await fetch(`${API_BASE}/auth-status`);
+            const data = await res.json();
+            isAuthenticated = data.authenticated || false;
+            updateAuthUI();
         });
 
         safeRun(fetchState);
