@@ -544,6 +544,7 @@
         });
 
         // ===================== ESTADO =====================
+        const state = {
             participants: [],
             schedule: [],
             leaderboard: [],
@@ -682,7 +683,9 @@
             renderRaceSelect(state.schedule);
             renderLeaderboard(state.leaderboard);
             renderSchedule(state.schedule);
-            renderHeaderMeta();            updateAuthUI();        }
+            renderHeaderMeta();
+            updateAuthUI();
+        }
 
         function selectRace(raceIndex) {
             const select = document.getElementById("raceSelect");
