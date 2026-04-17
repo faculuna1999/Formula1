@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, supports_credentials=True)
 
 # Clave secreta para firmar sesiones — fija para que las sesiones sobrevivan reinicios
 _secret_key_file = Path(__file__).parent / ".secret_key"

@@ -567,6 +567,7 @@
 
             const res = await fetch(`${API_BASE}/login`, {
                 method: "POST",
+                credentials: "include",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username, password }),
             });
@@ -582,7 +583,7 @@
         }
 
         async function logout() {
-            await fetch(`${API_BASE}/logout`, { method: "POST" });
+            await fetch(`${API_BASE}/logout`, { method: "POST", credentials: "include" });
             isAuthenticated = false;
             updateAuthUI();
             showStatus("Sesion cerrada.", "success");
@@ -786,7 +787,7 @@
         }
 
         async function fetchState() {
-            const response = await fetch(`${API_BASE}/state`);
+            const response = await fetch(`${API_BASE}/state`, { credentials: "include" });
             if (!response.ok) {
                 throw new Error("No se pudo cargar el estado del campeonato");
             }
@@ -854,6 +855,7 @@
 
             const response = await fetch(`${API_BASE}/participants`, {
                 method: "POST",
+                credentials: "include",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ participants, season_start_date: seasonStartDate, teams }),
             });
@@ -886,6 +888,7 @@
 
             const response = await fetch(`${API_BASE}/results`, {
                 method: "POST",
+                credentials: "include",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
             });
@@ -900,7 +903,7 @@
         }
 
         async function resetResults() {
-            const response = await fetch(`${API_BASE}/reset`, { method: "POST" });
+            const response = await fetch(`${API_BASE}/reset`, { method: "POST", credentials: "include" });
             const data = await response.json();
             if (!response.ok) {
                 throw new Error(data.message || "No se pudo reiniciar");
@@ -940,7 +943,7 @@
         });
 
         safeRun(async () => {
-            const authRes = await fetch(`${API_BASE}/auth-status`);
+            const authRes = await fetch(`${API_BASE}/auth-status`, { credentials: "include" });
             const authData = await authRes.json();
             isAuthenticated = authData.authenticated || false;
             await fetchState();
