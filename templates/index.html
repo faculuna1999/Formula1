@@ -6,20 +6,20 @@
     <title>Facu Demo - Campeonato Formula 1</title>
     <style>
         :root {
-            --bg-a: #ffedd5;
-            --bg-b: #fde68a;
-            --ink: #1f2937;
-            --muted: #6b7280;
-            --surface: #ffffff;
-            --surface-alt: #fff7ed;
-            --accent: #ea580c;
-            --accent-dark: #c2410c;
-            --ok: #166534;
-            --ok-bg: #dcfce7;
-            --err: #991b1b;
-            --err-bg: #fee2e2;
-            --line: #fdba74;
-            --shadow: 0 16px 48px rgba(194, 65, 12, 0.16);
+            --bg-a: #0b0b0e;
+            --bg-b: #15151b;
+            --ink: #f3f4f6;
+            --muted: #9ca3af;
+            --surface: #111318;
+            --surface-alt: #171a22;
+            --accent: #e10600;
+            --accent-dark: #b30500;
+            --ok: #86efac;
+            --ok-bg: #052e16;
+            --err: #fecaca;
+            --err-bg: #450a0a;
+            --line: #2b2f3a;
+            --shadow: 0 20px 54px rgba(0, 0, 0, 0.45);
         }
 
         * {
@@ -33,8 +33,8 @@
             color: var(--ink);
             min-height: 100vh;
             background:
-                radial-gradient(circle at 10% 10%, rgba(234, 88, 12, 0.22), transparent 30%),
-                radial-gradient(circle at 80% 20%, rgba(245, 158, 11, 0.2), transparent 35%),
+                radial-gradient(circle at 12% 15%, rgba(225, 6, 0, 0.2), transparent 30%),
+                radial-gradient(circle at 86% 8%, rgba(225, 6, 0, 0.14), transparent 28%),
                 linear-gradient(160deg, var(--bg-a), var(--bg-b));
             padding: 20px;
         }
@@ -47,13 +47,14 @@
         }
 
         .hero {
-            background: linear-gradient(120deg, #111827, #374151);
+            background: linear-gradient(120deg, #09090b, #161b22);
             color: #f9fafb;
             border-radius: 22px;
             padding: 24px;
             box-shadow: var(--shadow);
             overflow: hidden;
             position: relative;
+            border: 1px solid #272b35;
         }
 
         .hero::after {
@@ -63,7 +64,7 @@
             right: -30px;
             width: 180px;
             height: 180px;
-            background: radial-gradient(circle, rgba(234, 88, 12, 0.5), transparent 65%);
+            background: radial-gradient(circle, rgba(225, 6, 0, 0.58), transparent 65%);
             transform: rotate(12deg);
         }
 
@@ -107,6 +108,10 @@
         }
 
         .card h2 {
+            color: #f9fafb;
+        }
+
+        .card h2 {
             font-size: 1.1rem;
             margin-bottom: 10px;
         }
@@ -143,8 +148,9 @@
             width: 100%;
             padding: 10px;
             border-radius: 10px;
-            border: 1px solid #d1d5db;
-            background: #fff;
+            border: 1px solid #353b48;
+            background: #0f1117;
+            color: #f3f4f6;
         }
 
         .row {
@@ -167,10 +173,11 @@
         select,
         textarea {
             width: 100%;
-            border: 1px solid #d1d5db;
+            border: 1px solid #353b48;
             border-radius: 10px;
             padding: 10px;
-            background: #fff;
+            background: #0f1117;
+            color: #f3f4f6;
         }
 
         textarea {
@@ -204,12 +211,12 @@
         }
 
         .secondary {
-            background: #e5e7eb;
-            color: #1f2937;
+            background: #242934;
+            color: #e5e7eb;
         }
 
         .secondary:hover {
-            background: #d1d5db;
+            background: #2f3542;
         }
 
         .status {
@@ -240,7 +247,7 @@
 
         th,
         td {
-            border-bottom: 1px solid #fed7aa;
+            border-bottom: 1px solid #2b2f3a;
             padding: 8px;
             text-align: left;
             white-space: nowrap;
@@ -255,7 +262,7 @@
         .table-wrap {
             max-height: 400px;
             overflow: auto;
-            border: 1px solid #ffedd5;
+            border: 1px solid #252a34;
             border-radius: 10px;
         }
 
