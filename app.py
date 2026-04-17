@@ -177,8 +177,17 @@ def load_state():
         return state
 
     participants = state.get("participants", [])
-    if len(participants) != 20:
+    if not isinstance(participants, list):
         state["participants"] = default_participants()
+    else:
+        cleaned_participants = [name.strip() for name in participants if isinstance(name, str) and name.strip()]
+        lowered = [name.lower() for name in cleaned_participants]
+        has_unique_names = len(set(lowered)) == len(cleaned_participants)
+        valid_count = len(cleaned_participants) == 0 or (2 <= len(cleaned_participants) <= 20)
+        if has_unique_names and valid_count:
+            state["participants"] = cleaned_participants
+        else:
+            state["participants"] = default_participants()
 
     state["tracks"] = state.get("tracks", TRACKS)
     state["results"] = state.get("results", {})
