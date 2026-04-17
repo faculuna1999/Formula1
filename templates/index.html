@@ -324,7 +324,7 @@
             <article class="card result-card">
                 <h2>2) Cargar resultado de carrera</h2>
                 <p class="caption">
-                    Selecciona la carrera y pega la clasificacion final, un nombre por linea en orden del 1 al 20.
+                    Selecciona la carrera, escribi la fecha y carga clasificacion y/o resultado. Podés guardar uno sin el otro.
                 </p>
 
                 <div class="row">
@@ -332,13 +332,26 @@
                     <select id="raceSelect"></select>
                 </div>
 
-                <label class="small-muted" for="classificationInput">Clasificacion (20 lineas)</label>
-                <textarea id="classificationInput" placeholder="1) Participante 1&#10;2) Participante 2&#10;...&#10;20) Participante 20"></textarea>
+                <div class="row">
+                    <label class="small-muted" for="raceDateInput">Fecha de la carrera</label>
+                    <input type="date" id="raceDateInput">
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
+                    <div>
+                        <label class="small-muted">Clasificacion / Qualy (pos 1→20)</label>
+                        <textarea id="qualifyingInput" placeholder="1) Participante 1&#10;2) Participante 2&#10;...&#10;20) Participante 20" style="min-height:180px"></textarea>
+                    </div>
+                    <div>
+                        <label class="small-muted">Resultado de Carrera (pos 1→20)</label>
+                        <textarea id="classificationInput" placeholder="1) Participante 1&#10;2) Participante 2&#10;...&#10;20) Participante 20" style="min-height:180px"></textarea>
+                    </div>
+                </div>
 
                 <div class="button-bar">
-                    <button class="secondary" id="fillTemplateBtn">Rellenar plantilla actual</button>
-                    <button class="primary" id="saveResultBtn">Guardar resultado</button>
-                    <button class="secondary" id="resetResultsBtn">Reiniciar solo resultados</button>
+                    <button class="secondary" id="fillTemplateBtn">Rellenar plantilla en ambos</button>
+                    <button class="primary" id="saveResultBtn">Guardar</button>
+                    <button class="secondary" id="resetResultsBtn">Reiniciar resultados</button>
                 </div>
             </article>
 
@@ -373,7 +386,8 @@
                                 <th>Ronda</th>
                                 <th>Pista</th>
                                 <th>Fecha</th>
-                                <th>Estado</th>
+                                <th>Qualy</th>
+                                <th>Carrera</th>
                             </tr>
                         </thead>
                         <tbody id="scheduleBody"></tbody>
@@ -395,6 +409,9 @@
             completedRaces: 0,
             totalRaces: 0,
             nextRace: null,
+            results: {},
+            qualifying: {},
+            dates: {},
         };
 
         function showStatus(message, type) {
@@ -422,13 +439,19 @@
 
         function renderRaceSelect(schedule) {
             const select = document.getElementById("raceSelect");
+            const current = select.value;
             select.innerHTML = "";
             schedule.forEach((race) => {
                 const option = document.createElement("option");
                 option.value = String(race.race_index);
-                option.textContent = `R${race.round} - ${race.track} (${race.date})${race.has_result ? " [cargada]" : ""}`;
+                const tags = [];
+                if (race.has_qualifying) tags.push("Q");
+                if (race.has_result) tags.push("C");
+                const suffix = tags.length ? ` [${tags.join("+")}]` : "";
+                option.textContent = `R${race.round} - ${race.track} (${race.date})${suffix}`;
                 select.appendChild(option);
             });
+            if (current) select.value = current;
         }
 
         function renderLeaderboard(leaderboard) {
@@ -454,12 +477,16 @@
             body.innerHTML = "";
             schedule.forEach((race) => {
                 const tr = document.createElement("tr");
+                tr.style.cursor = "pointer";
+                tr.title = "Click para cargar datos de esta carrera";
                 tr.innerHTML = `
                     <td>${race.round}</td>
                     <td>${race.track}</td>
                     <td>${race.date}</td>
-                    <td>${race.has_result ? "Completada" : "Pendiente"}</td>
+                    <td style="color:${race.has_qualifying ? "#86efac" : "#6b7280"}">${race.has_qualifying ? "✔" : "—"}</td>
+                    <td style="color:${race.has_result ? "#86efac" : "#6b7280"}">${race.has_result ? "✔" : "—"}</td>
                 `;
+                tr.addEventListener("click", () => selectRace(race.race_index));
                 body.appendChild(tr);
             });
         }
@@ -487,8 +514,9 @@
         }
 
         function fillTemplate() {
-            const area = document.getElementById("classificationInput");
-            area.value = state.participants.map((name, idx) => `${idx + 1}) ${name}`).join("\n");
+            const template = state.participants.map((name, idx) => `${idx + 1}) ${name}`).join("\n");
+            document.getElementById("qualifyingInput").value = template;
+            document.getElementById("classificationInput").value = template;
         }
 
         async function fetchState() {
@@ -504,6 +532,9 @@
             state.completedRaces = data.completed_races;
             state.totalRaces = data.total_races;
             state.nextRace = data.next_race;
+            state.results = data.results || {};
+            state.qualifying = data.qualifying || {};
+            state.dates = data.dates || {};
 
             document.getElementById("seasonStartDate").value = data.season_start_date;
             renderParticipants(state.participants);
@@ -511,6 +542,25 @@
             renderLeaderboard(state.leaderboard);
             renderSchedule(state.schedule);
             renderHeaderMeta();
+        }
+
+        function selectRace(raceIndex) {
+            const select = document.getElementById("raceSelect");
+            select.value = String(raceIndex);
+            const race = state.schedule.find(r => r.race_index === raceIndex);
+            if (race) document.getElementById("raceDateInput").value = race.date;
+
+            const qData = state.qualifying[String(raceIndex)];
+            document.getElementById("qualifyingInput").value = qData
+                ? qData.map((name, i) => `${i + 1}) ${name}`).join("\n")
+                : "";
+
+            const rData = state.results[String(raceIndex)];
+            document.getElementById("classificationInput").value = rData
+                ? rData.map((name, i) => `${i + 1}) ${name}`).join("\n")
+                : "";
+
+            document.getElementById("saveResultBtn").scrollIntoView({ behavior: "smooth", block: "center" });
         }
 
         async function saveParticipants() {
@@ -535,12 +585,24 @@
 
         async function saveRaceResult() {
             const raceIndex = Number(document.getElementById("raceSelect").value);
-            const classification = parseClassificationText(document.getElementById("classificationInput").value);
+            const dateValue = document.getElementById("raceDateInput").value;
+            const qualifyingText = document.getElementById("qualifyingInput").value.trim();
+            const classificationText = document.getElementById("classificationInput").value.trim();
+
+            const payload = { race_index: raceIndex };
+            if (dateValue) payload.date = dateValue;
+            if (qualifyingText) payload.qualifying = parseClassificationText(qualifyingText);
+            if (classificationText) payload.classification = parseClassificationText(classificationText);
+
+            if (!dateValue && !qualifyingText && !classificationText) {
+                showStatus("Completá al menos un campo antes de guardar.", "error");
+                return;
+            }
 
             const response = await fetch(`${API_BASE}/results`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ race_index: raceIndex, classification }),
+                body: JSON.stringify(payload),
             });
 
             const data = await response.json();
@@ -561,6 +623,8 @@
 
             showStatus(data.message, "success");
             document.getElementById("classificationInput").value = "";
+            document.getElementById("qualifyingInput").value = "";
+            document.getElementById("raceDateInput").value = "";
             await fetchState();
         }
 
@@ -576,6 +640,11 @@
         document.getElementById("saveResultBtn").addEventListener("click", () => safeRun(saveRaceResult));
         document.getElementById("fillTemplateBtn").addEventListener("click", fillTemplate);
         document.getElementById("resetResultsBtn").addEventListener("click", () => safeRun(resetResults));
+
+        // Al cambiar de carrera en el select, precargar datos guardados
+        document.getElementById("raceSelect").addEventListener("change", (e) => {
+            selectRace(Number(e.target.value));
+        });
 
         safeRun(fetchState);
     </script>

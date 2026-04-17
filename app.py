@@ -106,6 +106,8 @@ def build_default_state():
         "season_start_date": (configured_start or next_monday()).isoformat(),
         "tracks": TRACKS,
         "results": {},
+        "qualifying": {},
+        "dates": {},
     }
 
 
@@ -134,6 +136,8 @@ def load_state():
 
     state["tracks"] = state.get("tracks", TRACKS)
     state["results"] = state.get("results", {})
+    state["qualifying"] = state.get("qualifying", {})
+    state["dates"] = state.get("dates", {})
     state["season_start_date"] = state.get("season_start_date", next_monday().isoformat())
     return state
 
@@ -163,14 +167,16 @@ def build_schedule(state):
     start = parse_iso_date(state.get("season_start_date")) or next_monday()
     races = []
     for idx, track_name in enumerate(state["tracks"]):
-        race_date = start + timedelta(days=7 * idx)
+        fallback_date = (start + timedelta(days=7 * idx)).isoformat()
+        race_date = state["dates"].get(str(idx)) or fallback_date
         races.append(
             {
                 "race_index": idx,
                 "round": idx + 1,
                 "track": track_name,
-                "date": race_date.isoformat(),
+                "date": race_date,
                 "has_result": str(idx) in state["results"],
+                "has_qualifying": str(idx) in state["qualifying"],
             }
         )
     return races
@@ -269,6 +275,8 @@ def get_state_payload():
         "points_system": POINTS_BY_POSITION,
         "schedule": schedule,
         "results": state["results"],
+        "qualifying": state["qualifying"],
+        "dates": state["dates"],
         "leaderboard": leaderboard,
         "completed_races": completed_races,
         "total_races": len(schedule),
@@ -310,6 +318,8 @@ def api_update_participants():
     state = load_state()
     state["participants"] = participants
     state["results"] = {}
+    state["qualifying"] = {}
+    state["dates"] = {}
     if season_start_date is not None:
         state["season_start_date"] = season_start_date.isoformat()
 
@@ -330,15 +340,31 @@ def api_set_result():
     if race_index < 0 or race_index >= len(state["tracks"]):
         return jsonify({"status": "error", "message": "race_index fuera de rango."}), 400
 
-    classification = data.get("classification", [])
-    validation_error = validate_classification(classification, state["participants"])
-    if validation_error:
-        return jsonify({"status": "error", "message": validation_error}), 400
+    # Fecha personalizada (opcional)
+    custom_date = parse_iso_date(data.get("date"))
+    if data.get("date") and custom_date is None:
+        return jsonify({"status": "error", "message": "Fecha invalida. Usa formato YYYY-MM-DD."}), 400
+    if custom_date:
+        state["dates"][str(race_index)] = custom_date.isoformat()
 
-    state["results"][str(race_index)] = classification
+    # Clasificacion (qualy) — opcional
+    qualifying = data.get("qualifying")
+    if qualifying is not None:
+        q_err = validate_classification(qualifying, state["participants"])
+        if q_err:
+            return jsonify({"status": "error", "message": f"Clasificacion (qualy): {q_err}"}), 400
+        state["qualifying"][str(race_index)] = qualifying
+
+    # Resultado de carrera — opcional
+    classification = data.get("classification")
+    if classification is not None:
+        r_err = validate_classification(classification, state["participants"])
+        if r_err:
+            return jsonify({"status": "error", "message": f"Resultado de carrera: {r_err}"}), 400
+        state["results"][str(race_index)] = classification
+
     save_state(state)
-
-    return jsonify({"status": "success", "message": "Resultado guardado correctamente."}), 200
+    return jsonify({"status": "success", "message": "Datos guardados correctamente."}), 200
 
 
 @app.route("/api/reset", methods=["POST"])
@@ -346,6 +372,8 @@ def api_set_result():
 def api_reset_results():
     state = load_state()
     state["results"] = {}
+    state["qualifying"] = {}
+    state["dates"] = {}
     save_state(state)
     return jsonify({"status": "success", "message": "Se reiniciaron los resultados del campeonato."}), 200
 
