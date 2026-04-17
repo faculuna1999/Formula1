@@ -18,8 +18,11 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 CORS(app)
 
-# Clave secreta para firmar sesiones (se genera aleatoria si no se configura)
-app.secret_key = os.getenv("SECRET_KEY") or secrets.token_hex(32)
+# Clave secreta para firmar sesiones — fija para que las sesiones sobrevivan reinicios
+_secret_key_file = Path(__file__).parent / ".secret_key"
+if not _secret_key_file.exists():
+    _secret_key_file.write_text(secrets.token_hex(32))
+app.secret_key = os.getenv("SECRET_KEY") or _secret_key_file.read_text().strip()
 
 # Credenciales de acceso configurables por variables de entorno
 ADMIN_USER = os.getenv("ADMIN_USER", "admin")

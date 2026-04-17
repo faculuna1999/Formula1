@@ -48,3 +48,4 @@ logs/
 
 # Estado local de campeonato
 data/*.json
+.secret_key
