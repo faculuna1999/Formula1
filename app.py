@@ -36,29 +36,53 @@ POINTS_BY_POSITION = {
 }
 
 TRACKS = [
-    "Bahrain International Circuit",
-    "Jeddah Corniche Circuit",
+    # R1 — 16 Mar — Australia
     "Albert Park Circuit",
-    "Suzuka Circuit",
+    # R2 — 23 Mar — China
     "Shanghai International Circuit",
+    # R3 — 6 Abr — Japón
+    "Suzuka Circuit",
+    # R4 — 13 Abr — Bahréin
+    "Bahrain International Circuit",
+    # R5 — 20 Abr — Arabia Saudita
+    "Jeddah Corniche Circuit",
+    # R6 — 4 May — Miami
     "Miami International Autodrome",
+    # R7 — 18 May — Emilia Romagna
     "Autodromo Enzo e Dino Ferrari (Imola)",
+    # R8 — 25 May — Mónaco
     "Circuit de Monaco",
-    "Circuit Gilles Villeneuve",
+    # R9 — 1 Jun — España
     "Circuit de Barcelona-Catalunya",
+    # R10 — 15 Jun — Canadá
+    "Circuit Gilles Villeneuve",
+    # R11 — 29 Jun — Austria
     "Red Bull Ring",
+    # R12 — 6 Jul — Gran Bretaña
     "Silverstone Circuit",
-    "Hungaroring",
+    # R13 — 27 Jul — Bélgica
     "Circuit de Spa-Francorchamps",
+    # R14 — 3 Ago — Hungría
+    "Hungaroring",
+    # R15 — 31 Ago — Países Bajos
     "Circuit Zandvoort",
+    # R16 — 7 Sep — Italia
     "Autodromo Nazionale Monza",
+    # R17 — 21 Sep — Azerbaiyán
     "Baku City Circuit",
+    # R18 — 5 Oct — Singapur
     "Marina Bay Street Circuit",
+    # R19 — 19 Oct — Estados Unidos
     "Circuit of the Americas",
+    # R20 — 26 Oct — México
     "Autodromo Hermanos Rodriguez",
+    # R21 — 9 Nov — Brasil
     "Interlagos (Sao Paulo)",
+    # R22 — 22 Nov — Las Vegas
     "Las Vegas Strip Circuit",
+    # R23 — 30 Nov — Qatar
     "Lusail International Circuit",
+    # R24 — 7 Dic — Abu Dabi
     "Yas Marina Circuit",
 ]
 
