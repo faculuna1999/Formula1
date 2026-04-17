@@ -558,7 +558,7 @@ def api_update_teams():
 
 if __name__ == "__main__":
     host = os.getenv("FLASK_HOST", "0.0.0.0")
-    port = int(os.getenv("FLASK_PORT", 3000))
+    port = int(os.getenv("PORT") or os.getenv("FLASK_PORT", 3000))
     debug = os.getenv("FLASK_ENV", "production") == "development"
 
     logger.info("Iniciando campeonato F1 en %s:%s", host, port)

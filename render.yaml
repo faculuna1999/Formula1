@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: facu-demo-f1
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app
+    healthCheckPath: /facu-demo/health
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: SCRIPT_NAME
+        value: /facu-demo
+      - key: ADMIN_USER
+        value: admin
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true

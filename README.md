@@ -84,6 +84,25 @@ docker-compose up --build
 - Health check: /facu-demo/health.
 - URL publica esperada: https://tu-dominio/facu-demo/
 
+## Despliegue estable en Render (URL fija)
+
+Este repo ya incluye `render.yaml`, listo para crear el servicio web en Render.
+
+1. Subi estos cambios a GitHub.
+2. En Render: New + -> Blueprint.
+3. Selecciona tu repo y crea el servicio.
+4. Configura `ADMIN_PASSWORD` (obligatorio) en Environment.
+5. Espera el deploy y abre la URL generada por Render.
+
+Tu app quedara disponible en:
+
+- `https://<tu-servicio>.onrender.com/facu-demo/`
+
+Notas:
+
+- `SECRET_KEY` se genera automaticamente por Render.
+- El comando de arranque usa Gunicorn (`gunicorn --bind 0.0.0.0:$PORT app:app`).
+
 ## Notas
 
 - Si el proxy hace strip del prefijo, la app tambien expone rutas sin prefijo para evitar loops.

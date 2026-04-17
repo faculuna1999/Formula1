@@ -410,10 +410,20 @@
                     <div>
                         <label class="small-muted">Clasificacion / Qualy (pos 1→20)</label>
                         <textarea id="qualifyingInput" placeholder="1) Participante 1&#10;2) Participante 2&#10;...&#10;20) Participante 20" style="min-height:180px"></textarea>
+                        <div class="button-bar" style="margin-top:8px;justify-content:flex-start">
+                            <button class="secondary" id="uploadQualyBtn" type="button">Cargar imagen de qualy</button>
+                            <input id="qualifyingImageInput" type="file" accept="image/*" style="display:none">
+                        </div>
+                        <p class="small-muted">Se autocompleta y despues podes editar manualmente.</p>
                     </div>
                     <div>
                         <label class="small-muted">Resultado de Carrera (pos 1→20)</label>
                         <textarea id="classificationInput" placeholder="1) Participante 1&#10;2) Participante 2&#10;...&#10;20) Participante 20" style="min-height:180px"></textarea>
+                        <div class="button-bar" style="margin-top:8px;justify-content:flex-start">
+                            <button class="secondary" id="uploadRaceBtn" type="button">Cargar imagen de carrera</button>
+                            <input id="raceImageInput" type="file" accept="image/*" style="display:none">
+                        </div>
+                        <p class="small-muted">Se autocompleta y despues podes editar manualmente.</p>
                     </div>
                 </div>
 
@@ -504,6 +514,7 @@
         </div>
     </div>
 
+    <script src="https://unpkg.com/tesseract.js@5/dist/tesseract.min.js"></script>
     <script>
         const API_BASE = "{{ prefix }}/api";
         const AVAILABLE_TEAMS = [
@@ -780,6 +791,178 @@
                 .map((line) => line.replace(/^\d+\)\s*/, ""));
         }
 
+        function normalizeForMatch(text) {
+            return (text || "")
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/[^a-z0-9\s]/g, " ")
+                .replace(/\s+/g, " ")
+                .trim();
+        }
+
+        function similarityByWords(a, b) {
+            const aWords = normalizeForMatch(a).split(" ").filter(Boolean);
+            const bWords = normalizeForMatch(b).split(" ").filter(Boolean);
+            if (!aWords.length || !bWords.length) return 0;
+            let matches = 0;
+            aWords.forEach((word) => {
+                if (bWords.some((w) => w.includes(word) || word.includes(w))) {
+                    matches += 1;
+                }
+            });
+            return matches / aWords.length;
+        }
+
+        function scoreParticipantAgainstText(name, text) {
+            const normalizedName = normalizeForMatch(name);
+            const normalizedText = normalizeForMatch(text);
+            if (!normalizedName || !normalizedText) return 0;
+            if (normalizedText.includes(normalizedName)) return 1;
+            return similarityByWords(name, text);
+        }
+
+        async function preprocessImageForOcr(file) {
+            const bitmap = await createImageBitmap(file);
+            const sourceCanvas = document.createElement("canvas");
+            sourceCanvas.width = bitmap.width;
+            sourceCanvas.height = bitmap.height;
+            const sourceCtx = sourceCanvas.getContext("2d", { willReadFrequently: true });
+            sourceCtx.drawImage(bitmap, 0, 0);
+
+            const cropX = Math.floor(bitmap.width * 0.23);
+            const cropY = Math.floor(bitmap.height * 0.43);
+            const cropWidth = Math.floor(bitmap.width * 0.67);
+            const cropHeight = Math.floor(bitmap.height * 0.26);
+
+            const targetCanvas = document.createElement("canvas");
+            targetCanvas.width = cropWidth * 2;
+            targetCanvas.height = cropHeight * 2;
+            const targetCtx = targetCanvas.getContext("2d", { willReadFrequently: true });
+            targetCtx.drawImage(
+                sourceCanvas,
+                cropX,
+                cropY,
+                cropWidth,
+                cropHeight,
+                0,
+                0,
+                targetCanvas.width,
+                targetCanvas.height,
+            );
+
+            const imageData = targetCtx.getImageData(0, 0, targetCanvas.width, targetCanvas.height);
+            const pixels = imageData.data;
+            for (let idx = 0; idx < pixels.length; idx += 4) {
+                const brightness = (pixels[idx] + pixels[idx + 1] + pixels[idx + 2]) / 3;
+                const boosted = brightness > 130 ? 255 : Math.max(0, brightness * 0.35);
+                pixels[idx] = boosted;
+                pixels[idx + 1] = boosted;
+                pixels[idx + 2] = boosted;
+            }
+            targetCtx.putImageData(imageData, 0, 0);
+            return targetCanvas;
+        }
+
+        function buildOrderedRankingFromCandidates(candidates, participants) {
+            const ranking = new Array(participants.length).fill(null);
+            const used = new Set();
+            const sortedCandidates = [...candidates].sort((left, right) => {
+                if (left.pos && right.pos) return left.pos - right.pos;
+                if (left.pos) return -1;
+                if (right.pos) return 1;
+                return right.score - left.score;
+            });
+
+            sortedCandidates.forEach((candidate) => {
+                if (!candidate.name || used.has(candidate.name)) return;
+                if (candidate.pos && candidate.pos >= 1 && candidate.pos <= participants.length) {
+                    if (!ranking[candidate.pos - 1]) {
+                        ranking[candidate.pos - 1] = candidate.name;
+                        used.add(candidate.name);
+                        return;
+                    }
+                }
+
+                const nextIndex = ranking.findIndex((item) => item === null);
+                if (nextIndex >= 0) {
+                    ranking[nextIndex] = candidate.name;
+                    used.add(candidate.name);
+                }
+            });
+
+            return ranking.filter(Boolean);
+        }
+
+        function extractRankingFromOcrText(rawText) {
+            const participants = state.participants || [];
+            if (participants.length < 2) {
+                throw new Error("Primero guarda participantes para poder mapear la imagen.");
+            }
+
+            const lines = rawText
+                .split("\n")
+                .map((line) => line.trim())
+                .filter((line) => line.length > 0);
+
+            const candidates = [];
+
+            lines.forEach((line) => {
+                const cleanedLine = line
+                    .replace(/[|]/g, " ")
+                    .replace(/\b(red bull|williams|alpine|mclaren|haas|mercedes|aston martin|ferrari|racing bulls|audi)\b/gi, " ")
+                    .replace(/\b(dnf|vuelta|vueltas|mejor tiempo|tiempo|salida|paradas)\b/gi, " ")
+                    .replace(/\d+:\d{2}\.\d{3}/g, " ")
+                    .replace(/[+][-\w:.]+/g, " ")
+                    .replace(/\s+/g, " ")
+                    .trim();
+                const posMatch = cleanedLine.match(/^\s*(\d{1,2})\b/);
+                const pos = posMatch ? Number(posMatch[1]) : null;
+                const posAnchoredText = cleanedLine.replace(/^\s*\d{1,2}\s*/, "").trim();
+
+                let bestName = null;
+                let bestScore = 0;
+
+                participants.forEach((name) => {
+                    const score = scoreParticipantAgainstText(name, posAnchoredText || cleanedLine);
+
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestName = name;
+                    }
+                });
+
+                if (!bestName || bestScore < 0.5) return;
+                candidates.push({ pos, name: bestName, score: bestScore, raw: cleanedLine });
+            });
+
+            const compact = buildOrderedRankingFromCandidates(candidates, participants);
+            if (!compact.length) {
+                throw new Error("No pude reconocer nombres validos. Proba con una imagen mas nitida.");
+            }
+            return compact;
+        }
+
+        async function applyOcrToTextarea(file, textareaId, label) {
+            if (!file) return;
+            if (!window.Tesseract) {
+                throw new Error("OCR no disponible. Recarga la pagina e intenta de nuevo.");
+            }
+
+            showStatus(`Procesando imagen de ${label}...`, "success");
+            const processedCanvas = await preprocessImageForOcr(file);
+            const result = await window.Tesseract.recognize(processedCanvas, "eng", {
+                tessedit_pageseg_mode: window.Tesseract.PSM.SINGLE_BLOCK,
+            });
+            const ranking = extractRankingFromOcrText(result.data.text || "");
+
+            document.getElementById(textareaId).value = ranking
+                .map((name, idx) => `${idx + 1}) ${name}`)
+                .join("\n");
+
+            showStatus(`Imagen de ${label} procesada. Revisa y corrige si hace falta.`, "success");
+        }
+
         function fillTemplate() {
             const template = state.participants.map((name, idx) => `${idx + 1}) ${name}`).join("\n");
             document.getElementById("qualifyingInput").value = template;
@@ -936,6 +1119,21 @@
         document.getElementById("restartChampionshipBtn").addEventListener("click", () => safeRun(restartChampionship));
         document.getElementById("saveResultBtn").addEventListener("click", () => safeRun(saveRaceResult));
         document.getElementById("fillTemplateBtn").addEventListener("click", fillTemplate);
+        document.getElementById("uploadQualyBtn").addEventListener("click", () => {
+            document.getElementById("qualifyingImageInput").click();
+        });
+        document.getElementById("uploadRaceBtn").addEventListener("click", () => {
+            document.getElementById("raceImageInput").click();
+        });
+
+        document.getElementById("qualifyingImageInput").addEventListener("change", (e) => safeRun(async () => {
+            await applyOcrToTextarea(e.target.files?.[0], "qualifyingInput", "qualy");
+            e.target.value = "";
+        }));
+        document.getElementById("raceImageInput").addEventListener("change", (e) => safeRun(async () => {
+            await applyOcrToTextarea(e.target.files?.[0], "classificationInput", "carrera");
+            e.target.value = "";
+        }));
 
         // Al cambiar de carrera en el select, precargar datos guardados
         document.getElementById("raceSelect").addEventListener("change", (e) => {
