@@ -316,6 +316,21 @@
             margin-top: 12px;
         }
 
+        .schedule-race-link {
+            background: none;
+            border: none;
+            color: var(--accent-cyan);
+            font-weight: 700;
+            padding: 0;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+            cursor: pointer;
+        }
+
+        .schedule-race-link:hover {
+            color: #8ce9ff;
+        }
+
         button {
             border: none;
             border-radius: 12px;
@@ -569,6 +584,7 @@
                                 <th>Fecha</th>
                                 <th>Qualy</th>
                                 <th>Carrera</th>
+                                <th>Detalle</th>
                             </tr>
                         </thead>
                         <tbody id="scheduleBody"></tbody>
@@ -633,11 +649,15 @@
                 </table>
             </div>
             <div class="btn-bar">
+                <button class="secondary" id="exportRacePngBtn" type="button">Exportar PNG</button>
+                <button class="secondary" id="exportRacePdfBtn" type="button">Exportar PDF</button>
                 <button class="secondary" id="closeRaceDetailBtn" type="button">Cerrar</button>
             </div>
         </div>
     </div>
 
+    <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://unpkg.com/tesseract.js@5/dist/tesseract.min.js"></script>
     <script>
         const API_BASE = "{{ prefix }}/api";
@@ -654,6 +674,7 @@
             "Kick Sauber",
         ];
         let isAuthenticated = false;
+        let currentRaceDetailIndex = null;
 
         // ===================== AUTH =====================
         function updateAuthUI() {
@@ -866,19 +887,20 @@
             body.innerHTML = "";
             schedule.forEach((race) => {
                 const tr = document.createElement("tr");
-                tr.style.cursor = "pointer";
-                tr.title = "Click para cargar datos de esta carrera";
                 tr.innerHTML = `
                     <td>${race.round}</td>
-                    <td>${race.track}</td>
+                    <td><button type="button" class="schedule-race-link">${race.track}</button></td>
                     <td>${race.date}</td>
                     <td style="color:${race.has_qualifying ? "#86efac" : "#6b7280"}">${race.has_qualifying ? "✔" : "—"}</td>
                     <td style="color:${race.has_result ? "#86efac" : "#6b7280"}">${race.has_result ? "✔" : "—"}</td>
+                    <td><button type="button" class="secondary schedule-detail-btn">Ver detalle</button></td>
                 `;
-                tr.addEventListener("click", () => {
+                const openDetail = () => {
                     selectRace(race.race_index);
                     openRaceDetailModal(race.race_index);
-                });
+                };
+                tr.querySelector(".schedule-race-link").addEventListener("click", openDetail);
+                tr.querySelector(".schedule-detail-btn").addEventListener("click", openDetail);
                 body.appendChild(tr);
             });
         }
@@ -1026,6 +1048,7 @@
         function openRaceDetailModal(raceIndex) {
             const race = state.schedule.find((item) => item.race_index === raceIndex);
             if (!race) return;
+            currentRaceDetailIndex = raceIndex;
 
             document.getElementById("raceDetailTitle").textContent = `R${race.round} - ${race.track}`;
             document.getElementById("raceDetailSubtitle").textContent = `Fecha: ${race.date}`;
@@ -1062,6 +1085,53 @@
 
         function closeRaceDetailModal() {
             document.getElementById("raceDetailModal").classList.remove("open");
+        }
+
+        function currentRaceFileLabel() {
+            const race = state.schedule.find((item) => item.race_index === currentRaceDetailIndex);
+            if (!race) return "detalle-carrera";
+            const cleanTrack = race.track.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+            return `r${race.round}-${cleanTrack || "carrera"}`;
+        }
+
+        async function exportRaceDetailPng() {
+            const modalContent = document.querySelector("#raceDetailModal .race-detail-modal");
+            if (!modalContent || !window.html2canvas) {
+                throw new Error("No se pudo exportar PNG en este navegador.");
+            }
+            const canvas = await window.html2canvas(modalContent, {
+                backgroundColor: "#0b1120",
+                scale: 2,
+            });
+            const link = document.createElement("a");
+            link.href = canvas.toDataURL("image/png");
+            link.download = `${currentRaceFileLabel()}.png`;
+            link.click();
+            showStatus("Detalle exportado en PNG.", "success");
+        }
+
+        async function exportRaceDetailPdf() {
+            if (!window.jspdf || !window.html2canvas) {
+                throw new Error("No se pudo exportar PDF en este navegador.");
+            }
+            const modalContent = document.querySelector("#raceDetailModal .race-detail-modal");
+            const canvas = await window.html2canvas(modalContent, {
+                backgroundColor: "#0b1120",
+                scale: 2,
+            });
+            const imgData = canvas.toDataURL("image/png");
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const ratio = Math.min(pageWidth / canvas.width, pageHeight / canvas.height);
+            const drawWidth = canvas.width * ratio;
+            const drawHeight = canvas.height * ratio;
+            const offsetX = (pageWidth - drawWidth) / 2;
+            const offsetY = (pageHeight - drawHeight) / 2;
+            pdf.addImage(imgData, "PNG", offsetX, offsetY, drawWidth, drawHeight);
+            pdf.save(`${currentRaceFileLabel()}.pdf`);
+            showStatus("Detalle exportado en PDF.", "success");
         }
 
         function normalizeForMatch(text) {
@@ -1432,6 +1502,8 @@
             await applyOcrToTextarea(e.target.files?.[0], "classificationInput", "carrera");
             e.target.value = "";
         }));
+        document.getElementById("exportRacePngBtn").addEventListener("click", () => safeRun(exportRaceDetailPng));
+        document.getElementById("exportRacePdfBtn").addEventListener("click", () => safeRun(exportRaceDetailPdf));
         document.getElementById("closeRaceDetailBtn").addEventListener("click", closeRaceDetailModal);
         document.getElementById("raceDetailModal").addEventListener("click", (e) => {
             if (e.target === e.currentTarget) closeRaceDetailModal();
