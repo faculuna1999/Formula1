@@ -46,7 +46,9 @@ if not script_name.startswith("/"):
 script_name = script_name.rstrip("/") or "/facu-demo"
 app.config["APPLICATION_ROOT"] = script_name
 
-DATA_FILE = Path("data/season.json")
+BASE_DIR = Path(__file__).parent
+DATA_FILE = BASE_DIR / "data/season.json"
+DATA_SEED_FILE = BASE_DIR / "data/season.seed.json"
 POINTS_BY_POSITION = {
     1: 25,
     2: 18,
@@ -158,6 +160,8 @@ def build_default_state():
         "qualifying": {},
         "qualifying_details": {},
         "race_details": {},
+        "player_images": {},
+        "player_bios": {},
         "dates": {},
         "teams": teams_map,
     }
@@ -168,9 +172,20 @@ def save_state(state):
     DATA_FILE.write_text(json.dumps(state, indent=2), encoding="utf-8")
 
 
+def load_seed_state():
+    if not DATA_SEED_FILE.exists():
+        return None
+
+    try:
+        return json.loads(DATA_SEED_FILE.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        logger.warning("Archivo seed invalido. Se recrea estado por defecto.")
+        return None
+
+
 def load_state():
     if not DATA_FILE.exists():
-        state = build_default_state()
+        state = load_seed_state() or build_default_state()
         save_state(state)
         return state
 
@@ -178,7 +193,7 @@ def load_state():
         state = json.loads(DATA_FILE.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         logger.warning("Archivo de estado invalido. Se recrea estado por defecto.")
-        state = build_default_state()
+        state = load_seed_state() or build_default_state()
         save_state(state)
         return state
 
@@ -200,17 +215,31 @@ def load_state():
     state["qualifying"] = state.get("qualifying", {})
     state["qualifying_details"] = state.get("qualifying_details", {})
     state["race_details"] = state.get("race_details", {})
+    state["player_images"] = state.get("player_images", {})
+    state["player_bios"] = state.get("player_bios", {})
     state["dates"] = state.get("dates", {})
     state["season_start_date"] = state.get("season_start_date", next_monday().isoformat())
     # Ensure teams are assigned for all participants
     existing_teams = state.get("teams", {})
+    existing_images = state.get("player_images", {})
     new_teams = {}
+    new_images = {}
     for idx, name in enumerate(state["participants"]):
         normalized_team = canonical_team_name(existing_teams.get(name))
         if normalized_team not in TEAMS:
             normalized_team = TEAMS[idx % len(TEAMS)]
         new_teams[name] = normalized_team
+        image_value = existing_images.get(name)
+        if isinstance(image_value, str) and image_value.strip():
+            new_images[name] = image_value
     state["teams"] = new_teams
+    state["player_images"] = new_images
+    existing_bios = state.get("player_bios", {})
+    new_bios = {}
+    for name in state["participants"]:
+        if isinstance(existing_bios.get(name), dict):
+            new_bios[name] = existing_bios[name]
+    state["player_bios"] = new_bios
     return state
 
 
@@ -449,6 +478,8 @@ def get_state_payload():
         "dates": state["dates"],
         "leaderboard": leaderboard,
         "teams": state["teams"],
+        "player_images": state["player_images"],
+        "player_bios": state["player_bios"],
         "teams_leaderboard": teams_leaderboard,
         "completed_races": completed_races,
         "total_races": len(schedule),
@@ -517,14 +548,20 @@ def api_update_participants():
     if provided_teams is not None and not isinstance(provided_teams, dict):
         return jsonify({"status": "error", "message": "teams debe ser un diccionario de participante: equipo."}), 400
 
+    provided_images = data.get("player_images")
+    if provided_images is not None and not isinstance(provided_images, dict):
+        return jsonify({"status": "error", "message": "player_images debe ser un diccionario de participante: imagen."}), 400
+
     season_start_date = parse_iso_date(data.get("season_start_date"))
     if data.get("season_start_date") and season_start_date is None:
         return jsonify({"status": "error", "message": "Fecha invalida. Usa formato YYYY-MM-DD."}), 400
 
     state = load_state()
     existing_teams = state.get("teams", {})
+    existing_images = state.get("player_images", {})
     state["participants"] = participants
     new_teams = {}
+    new_images = {}
     for idx, name in enumerate(participants):
         preferred_team = canonical_team_name((provided_teams or {}).get(name))
         if preferred_team is not None and preferred_team not in TEAMS:
@@ -533,12 +570,44 @@ def api_update_participants():
         if current_team not in TEAMS:
             current_team = TEAMS[idx % len(TEAMS)]
         new_teams[name] = preferred_team or current_team
+
+        preferred_image = (provided_images or {}).get(name)
+        if preferred_image is not None and not isinstance(preferred_image, str):
+            return jsonify({"status": "error", "message": f"Imagen invalida para {name}."}), 400
+        if isinstance(preferred_image, str) and preferred_image.strip():
+            new_images[name] = preferred_image.strip()
+        elif isinstance(existing_images.get(name), str) and existing_images.get(name).strip():
+            new_images[name] = existing_images.get(name).strip()
     state["teams"] = new_teams
+    state["player_images"] = new_images
     if season_start_date is not None:
         state["season_start_date"] = season_start_date.isoformat()
 
     save_state(state)
     return jsonify({"status": "success", "message": "Participantes guardados correctamente."}), 200
+
+
+@app.route("/api/player-profile", methods=["POST"])
+@app.route(f"{script_name}/api/player-profile", methods=["POST"])
+@login_required
+def api_update_player_profile():
+    data = request.get_json() or {}
+    player_name = data.get("name", "").strip()
+    profile_data = data.get("profile", {})
+
+    if not player_name:
+        return jsonify({"status": "error", "message": "Falta nombre del jugador."}), 400
+
+    state = load_state()
+    if player_name not in state["participants"]:
+        return jsonify({"status": "error", "message": "Jugador no encontrado."}), 404
+
+    if not isinstance(profile_data, dict):
+        return jsonify({"status": "error", "message": "Datos de perfil invalidos."}), 400
+
+    state["player_bios"][player_name] = profile_data
+    save_state(state)
+    return jsonify({"status": "success", "message": "Perfil actualizado correctamente."}), 200
 
 
 @app.route("/api/results", methods=["POST"])

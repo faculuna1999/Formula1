@@ -48,4 +48,5 @@ logs/
 
 # Estado local de campeonato
 data/*.json
+!data/season.seed.json
 .secret_key

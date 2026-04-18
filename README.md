@@ -88,11 +88,20 @@ docker-compose up --build
 
 Este repo ya incluye `render.yaml`, listo para crear el servicio web en Render.
 
+Importante sobre persistencia en Render gratis:
+
+- La URL `onrender.com` es estable y gratuita.
+- El filesystem del servicio no es persistente.
+- Este repo incluye `data/season.seed.json` para que el deploy arranque con un estado inicial versionado.
+- Los cambios hechos en producción sobre `data/season.json` pueden perderse si Render reinicia o redeploya el servicio.
+- Si querés persistencia real en producción, el siguiente paso sería mover el estado a una base de datos o almacenamiento externo.
+
 1. Subi estos cambios a GitHub.
-2. En Render: New + -> Blueprint.
-3. Selecciona tu repo y crea el servicio.
-4. Configura `ADMIN_PASSWORD` (obligatorio) en Environment.
-5. Espera el deploy y abre la URL generada por Render.
+2. En Render: `New +` -> `Blueprint`.
+3. Selecciona tu repo y crea el servicio usando el `render.yaml` del proyecto.
+4. Configura `ADMIN_PASSWORD` en Environment.
+5. Opcionalmente cambia `ADMIN_USER` si no querés usar `admin`.
+6. Espera el deploy y abre la URL generada por Render.
 
 Tu app quedara disponible en:
 
@@ -102,6 +111,7 @@ Notas:
 
 - `SECRET_KEY` se genera automaticamente por Render.
 - El comando de arranque usa Gunicorn (`gunicorn --bind 0.0.0.0:$PORT app:app`).
+- Si el servicio reinicia, Render volvera a arrancar desde el estado seed versionado si no conserva `data/season.json`.
 
 ## Notas
 

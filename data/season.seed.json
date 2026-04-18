@@ -1,0 +1,504 @@
+{
+  "participants": [
+    "Facu",
+    "Santi",
+    "Yaco",
+    "Pister",
+    "FerTobs",
+    "Leo Lucero",
+    "Chino",
+    "Marco",
+    "Duchneitor",
+    "Nico B",
+    "Pelusita",
+    "Juancito",
+    "Santar",
+    "Ciro",
+    "Gonza",
+    "Jorge",
+    "Jona",
+    "Pani"
+  ],
+  "season_start_date": "2026-04-01",
+  "tracks": [
+    "Albert Park Circuit",
+    "Shanghai International Circuit",
+    "Suzuka Circuit",
+    "Bahrain International Circuit",
+    "Jeddah Corniche Circuit",
+    "Miami International Autodrome",
+    "Autodromo Enzo e Dino Ferrari (Imola)",
+    "Circuit de Monaco",
+    "Circuit de Barcelona-Catalunya",
+    "Circuit Gilles Villeneuve",
+    "Red Bull Ring",
+    "Silverstone Circuit",
+    "Circuit de Spa-Francorchamps",
+    "Hungaroring",
+    "Circuit Zandvoort",
+    "Autodromo Nazionale Monza",
+    "Baku City Circuit",
+    "Marina Bay Street Circuit",
+    "Circuit of the Americas",
+    "Autodromo Hermanos Rodriguez",
+    "Interlagos (Sao Paulo)",
+    "Las Vegas Strip Circuit",
+    "Lusail International Circuit",
+    "Yas Marina Circuit"
+  ],
+  "results": {
+    "0": [
+      "Santi",
+      "Jona",
+      "FerTobs",
+      "Yaco",
+      "Ciro",
+      "Pani",
+      "Facu",
+      "Gonza",
+      "Duchneitor",
+      "Jorge",
+      "Chino",
+      "Nico B",
+      "Pister",
+      "Marco",
+      "Leo Lucero",
+      "Pelusita",
+      "Juancito",
+      "Santar"
+    ],
+    "1": [
+      "Facu",
+      "Ciro",
+      "Pister",
+      "FerTobs",
+      "Pani",
+      "Gonza",
+      "Nico B",
+      "Jorge",
+      "Santar",
+      "Juancito",
+      "Santi",
+      "Yaco",
+      "Jona",
+      "Duchneitor",
+      "Leo Lucero",
+      "Marco",
+      "Pelusita",
+      "Chino"
+    ]
+  },
+  "qualifying": {
+    "0": [
+      "Santi",
+      "Yaco",
+      "Jona",
+      "Pani",
+      "Pister",
+      "Ciro",
+      "FerTobs",
+      "Facu",
+      "Duchneitor",
+      "Gonza",
+      "Chino",
+      "Jorge",
+      "Marco",
+      "Nico B",
+      "Leo Lucero",
+      "Pelusita",
+      "Juancito",
+      "Santar"
+    ],
+    "1": [
+      "Santi",
+      "Ciro",
+      "Facu",
+      "Jona",
+      "Pani",
+      "Yaco",
+      "Pister",
+      "Duchneitor",
+      "Juancito",
+      "Jorge",
+      "Nico B",
+      "Chino",
+      "Santar",
+      "FerTobs",
+      "Leo Lucero",
+      "Marco",
+      "Pelusita",
+      "Gonza"
+    ]
+  },
+  "dates": {
+    "0": "2026-04-01",
+    "1": "2026-12-04"
+  },
+  "teams": {
+    "Facu": "Red Bull Racing",
+    "Santi": "Red Bull Racing",
+    "Yaco": "McLaren",
+    "Pister": "McLaren",
+    "FerTobs": "Alpine",
+    "Leo Lucero": "Alpine",
+    "Chino": "Aston Martin",
+    "Marco": "Aston Martin",
+    "Duchneitor": "Ferrari",
+    "Nico B": "Ferrari",
+    "Pelusita": "Racing Bulls",
+    "Juancito": "Racing Bulls",
+    "Santar": "Haas",
+    "Ciro": "Haas",
+    "Gonza": "Mercedes",
+    "Jorge": "Mercedes",
+    "Jona": "Williams",
+    "Pani": "Williams"
+  },
+  "qualifying_details": {
+    "0": {
+      "Santi": {
+        "position": 1,
+        "time": "1:30.598"
+      },
+      "Yaco": {
+        "position": 2,
+        "time": "1:32.002"
+      },
+      "Jona": {
+        "position": 3,
+        "time": "1:32.114"
+      },
+      "Pani": {
+        "position": 4,
+        "time": "1:33.155"
+      },
+      "Pister": {
+        "position": 5,
+        "time": "1:33.214"
+      },
+      "Ciro": {
+        "position": 6,
+        "time": "1:33.712"
+      },
+      "FerTobs": {
+        "position": 7,
+        "time": "1:33.826"
+      },
+      "Facu": {
+        "position": 8,
+        "time": "1:33.834"
+      },
+      "Duchneitor": {
+        "position": 9,
+        "time": "1:35.038"
+      },
+      "Gonza": {
+        "position": 10,
+        "time": "1:35.080"
+      },
+      "Chino": {
+        "position": 11,
+        "time": "1:36.075"
+      },
+      "Jorge": {
+        "position": 12,
+        "time": "1:40.756"
+      },
+      "Marco": {
+        "position": 13,
+        "time": "1:41.780"
+      },
+      "Nico B": {
+        "position": 14,
+        "time": "1:42.324"
+      },
+      "Leo Lucero": {
+        "position": 15,
+        "time": ""
+      },
+      "Pelusita": {
+        "position": 16,
+        "time": ""
+      },
+      "Juancito": {
+        "position": 17,
+        "time": ""
+      },
+      "Santar": {
+        "position": 18,
+        "time": ""
+      }
+    },
+    "1": {
+      "Santi": {
+        "position": 1,
+        "time": "1:32.784"
+      },
+      "Ciro": {
+        "position": 2,
+        "time": "1:33.878"
+      },
+      "Facu": {
+        "position": 3,
+        "time": "1:33.967"
+      },
+      "Jona": {
+        "position": 4,
+        "time": "1:34.748"
+      },
+      "Pani": {
+        "position": 5,
+        "time": "1:34.885"
+      },
+      "Yaco": {
+        "position": 6,
+        "time": "1:35.120"
+      },
+      "Pister": {
+        "position": 7,
+        "time": "1:35.202"
+      },
+      "Duchneitor": {
+        "position": 8,
+        "time": "1:36.426"
+      },
+      "Juancito": {
+        "position": 9,
+        "time": "1:36.727"
+      },
+      "Jorge": {
+        "position": 10,
+        "time": "1:37.122"
+      },
+      "Nico B": {
+        "position": 11,
+        "time": "1:37.263"
+      },
+      "Chino": {
+        "position": 12,
+        "time": "1:38.917"
+      },
+      "Santar": {
+        "position": 13,
+        "time": ""
+      },
+      "FerTobs": {
+        "position": 14,
+        "time": ""
+      },
+      "Leo Lucero": {
+        "position": 15,
+        "time": ""
+      },
+      "Marco": {
+        "position": 16,
+        "time": ""
+      },
+      "Pelusita": {
+        "position": 17,
+        "time": ""
+      },
+      "Gonza": {
+        "position": 18,
+        "time": ""
+      }
+    }
+  },
+  "race_details": {
+    "0": {
+      "Santi": {
+        "position": 1,
+        "best_time": "1:18.532",
+        "status": "FINISHED"
+      },
+      "Jona": {
+        "position": 2,
+        "best_time": "1:20.875",
+        "status": "FINISHED"
+      },
+      "FerTobs": {
+        "position": 3,
+        "best_time": "1:21.361",
+        "status": "FINISHED"
+      },
+      "Yaco": {
+        "position": 4,
+        "best_time": "1:20.911",
+        "status": "FINISHED"
+      },
+      "Ciro": {
+        "position": 5,
+        "best_time": "1:20.282",
+        "status": "FINISHED"
+      },
+      "Pani": {
+        "position": 6,
+        "best_time": "1:22.290",
+        "status": "FINISHED"
+      },
+      "Facu": {
+        "position": 7,
+        "best_time": "1:19.786",
+        "status": "FINISHED"
+      },
+      "Gonza": {
+        "position": 8,
+        "best_time": "1:22.525",
+        "status": "FINISHED"
+      },
+      "Duchneitor": {
+        "position": 9,
+        "best_time": "1:22.017",
+        "status": "FINISHED"
+      },
+      "Jorge": {
+        "position": 10,
+        "best_time": "1:23.434",
+        "status": "FINISHED"
+      },
+      "Chino": {
+        "position": 11,
+        "best_time": "1:23.973",
+        "status": "FINISHED"
+      },
+      "Nico B": {
+        "position": 12,
+        "best_time": "1:23.973",
+        "status": "DNF"
+      },
+      "Pister": {
+        "position": 13,
+        "best_time": "1:19.542",
+        "status": "DNF"
+      },
+      "Marco": {
+        "position": 14,
+        "best_time": "1:43.784",
+        "status": "DNF"
+      },
+      "Leo Lucero": {
+        "position": 15,
+        "best_time": "",
+        "status": "DNS"
+      },
+      "Pelusita": {
+        "position": 16,
+        "best_time": "",
+        "status": "DNS"
+      },
+      "Juancito": {
+        "position": 17,
+        "best_time": "",
+        "status": "DNS"
+      },
+      "Santar": {
+        "position": 18,
+        "best_time": "",
+        "status": "DNS"
+      }
+    },
+    "1": {
+      "Facu": {
+        "position": 1,
+        "best_time": "1:37.129",
+        "status": "FINISHED"
+      },
+      "Ciro": {
+        "position": 2,
+        "best_time": "1:37.751",
+        "status": "FINISHED"
+      },
+      "Pister": {
+        "position": 3,
+        "best_time": "1:38.125",
+        "status": "FINISHED"
+      },
+      "FerTobs": {
+        "position": 4,
+        "best_time": "1:39.065",
+        "status": "FINISHED"
+      },
+      "Pani": {
+        "position": 5,
+        "best_time": "1:38.863",
+        "status": "FINISHED"
+      },
+      "Gonza": {
+        "position": 6,
+        "best_time": "1:40.493",
+        "status": "FINISHED"
+      },
+      "Nico B": {
+        "position": 7,
+        "best_time": "1:41.215",
+        "status": "FINISHED"
+      },
+      "Jorge": {
+        "position": 8,
+        "best_time": "1:41.751",
+        "status": "FINISHED"
+      },
+      "Santar": {
+        "position": 9,
+        "best_time": "1:41.692",
+        "status": "FINISHED"
+      },
+      "Juancito": {
+        "position": 10,
+        "best_time": "1:40.817",
+        "status": "FINISHED"
+      },
+      "Santi": {
+        "position": 11,
+        "best_time": "1:36.107",
+        "status": "DNF"
+      },
+      "Yaco": {
+        "position": 12,
+        "best_time": "1:39.504",
+        "status": "DNF"
+      },
+      "Jona": {
+        "position": 13,
+        "best_time": "1:40.028",
+        "status": "DNF"
+      },
+      "Duchneitor": {
+        "position": 14,
+        "best_time": "1:30.020",
+        "status": "DNF"
+      },
+      "Leo Lucero": {
+        "position": 15,
+        "best_time": "",
+        "status": "DNS"
+      },
+      "Marco": {
+        "position": 16,
+        "best_time": "",
+        "status": "DNS"
+      },
+      "Pelusita": {
+        "position": 17,
+        "best_time": "",
+        "status": "DNS"
+      },
+      "Chino": {
+        "position": 18,
+        "best_time": "",
+        "status": "DNS"
+      }
+    }
+  },
+  "player_bios": {
+    "Facu": {
+      "number": "19",
+      "bio": "Mala suerte andante"
+    },
+    "Jona": {
+      "number": "59",
+      "bio": "Le gusta el sin hueso"
+    }
+  },
+  "player_images": {}
+}

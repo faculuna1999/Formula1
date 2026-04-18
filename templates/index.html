@@ -118,10 +118,57 @@
 
         .podium-card {
             grid-column: span 4;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .comisario-card {
+            grid-column: span 4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .comisario-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            width: 100%;
+        }
+
+        .comisario-image {
+            width: 200px;
+            height: 200px;
+            border-radius: 12px;
+            object-fit: cover;
+            border: 2px solid rgba(138, 168, 240, 0.32);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        .comisario-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #89f7b1;
+        }
+
+        .comisario-upload {
+            display: none;
+        }
+
+        .comisario-edit-btn {
+            display: none;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .comisario-edit-btn.visible {
+            display: flex;
         }
 
         .drivers-card {
-            grid-column: span 8;
+            grid-column: span 12;
         }
 
         .timeline-card {
@@ -129,36 +176,107 @@
         }
 
         .podium-wrap {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            gap: 6px;
+            flex: 1;
+            min-height: 100%;
         }
 
         .podium-item {
             border: 1px solid rgba(118, 149, 217, 0.32);
-            border-radius: 14px;
-            padding: 10px;
+            border-radius: 12px;
+            padding: 8px;
             background: rgba(19, 28, 46, 0.7);
-            min-height: 110px;
+            min-height: 80px;
             display: grid;
-            gap: 5px;
-            align-content: start;
+            grid-template-columns: 65px 1fr;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .podium-item-image {
+            grid-column: 1;
+            grid-row: 1 / 3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .podium-item-info {
+            grid-column: 2;
+            grid-row: 1;
+            display: grid;
+            gap: 2px;
+        }
+
+        .podium-item-stats {
+            grid-column: 2;
+            grid-row: 2;
+            display: flex;
+            gap: 12px;
+            font-size: 0.8rem;
         }
 
         .podium-item .place {
             font-family: "Orbitron", "Rajdhani", sans-serif;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: var(--accent-cyan);
+            margin: 0;
         }
 
         .podium-item .name {
             font-weight: 700;
-            font-size: 1.06rem;
+            font-size: 0.95rem;
+            line-height: 1;
+            margin: 0;
+        }
+
+        .profile-photo,
+        .podium-player-photo,
+        .avatar img,
+        .player-photo-upload img,
+        .podium-item .avatar {
+            width: 100%;
+            height: 100%;
+            border-radius: inherit;
+            object-fit: cover;
+            object-position: center;
+            display: block;
+        }
+
+        .podium-player-photo,
+        .podium-item .avatar {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            border: 1px solid rgba(154, 183, 255, 0.32);
+            background: rgba(16, 22, 37, 0.7);
         }
 
         .podium-item .points {
             color: var(--muted);
-            font-size: 0.9rem;
+            font-size: 0.85rem;
+            margin: 0;
+        }
+
+        .podium-stat {
+            color: var(--muted);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .podium-stat-value {
+            font-weight: 700;
+            color: #f3f4f6;
+            font-size: 0.85rem;
+        }
+
+        .podium-stat-label {
+            font-size: 0.65rem;
+            white-space: nowrap;
         }
 
         .podium-item.gold { border-color: #f6c969; }
@@ -187,8 +305,10 @@
         }
 
         .avatar {
-            width: 32px;
-            height: 32px;
+            width: 40px;
+            height: 40px;
+            min-width: 40px;
+            min-height: 40px;
             border-radius: 50%;
             border: 1px solid rgba(154, 183, 255, 0.28);
             display: grid;
@@ -197,6 +317,17 @@
             font-size: 0.8rem;
             color: #dfe8ff;
             background: rgba(57, 215, 255, 0.12);
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            object-position: center top;
+            display: block;
         }
 
         .driver-name {
@@ -353,6 +484,19 @@
             margin-top: 10px;
         }
 
+        .race-detail-modal .table-wrap.expanded {
+            max-height: none;
+            overflow: visible;
+        }
+
+        .best-time-highlight {
+            color: #89f7b1;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(137, 247, 177, 0.15);
+        }
+
         .race-detail-modal th,
         .race-detail-modal td {
             font-size: 0.88rem;
@@ -398,8 +542,175 @@
 
         .participant-row {
             display: grid;
-            grid-template-columns: 1.2fr 1fr;
+            grid-template-columns: 1.2fr 1fr auto;
             gap: 8px;
+            align-items: center;
+        }
+
+        .player-photo-upload {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 999px;
+            border: 1px solid rgba(116, 146, 214, 0.48);
+            background: rgba(11, 16, 28, 0.82);
+            color: #dbe7ff;
+            cursor: pointer;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .player-photo-upload img {
+            border-radius: inherit;
+        }
+
+        .constructors-podium-card {
+            grid-column: span 4;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .constructors-podium-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .constructors-podium-item {
+            position: relative;
+            overflow: hidden;
+            min-height: 80px;
+            border-radius: 12px;
+            border: 1px solid rgba(118, 149, 217, 0.32);
+            background: rgba(19, 28, 46, 0.7);
+            padding: 8px;
+            display: grid;
+            grid-template-columns: 65px 1fr;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .constructors-podium-item::after {
+            display: none;
+        }
+
+        .constructors-podium-item.gold { border-color: #f6c969; }
+        .constructors-podium-item.silver { border-color: #c4d5f2; }
+        .constructors-podium-item.bronze { border-color: #d59673; }
+
+        .constructors-podium-top {
+            grid-column: 2;
+            grid-row: 1;
+            display: grid;
+            gap: 2px;
+        }
+
+        .constructors-place {
+            font-family: "Orbitron", "Rajdhani", sans-serif;
+            font-size: 0.75rem;
+            color: var(--accent-cyan);
+            margin: 0;
+        }
+
+        .constructor-logo-shell {
+            grid-column: 1;
+            grid-row: 1 / 3;
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            padding: 8px;
+            border: 1px solid rgba(154, 183, 255, 0.32);
+            background: rgba(16, 22, 37, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .constructor-logo-shell {
+            grid-column: 1;
+            grid-row: 1 / 3;
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            padding: 8px;
+            border: 1px solid rgba(154, 183, 255, 0.32);
+            background: rgba(16, 22, 37, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .constructor-logo {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: center;
+            display: block;
+        }
+
+        .constructors-team-name {
+            grid-column: 2;
+            grid-row: 1;
+            font-weight: 700;
+            font-size: 0.95rem;
+            line-height: 1;
+            margin: 0;
+        }
+
+        .constructors-meta {
+            grid-column: 2;
+            grid-row: 2;
+            color: var(--muted);
+            font-size: 0.8rem;
+        }
+
+        .constructors-podium-stats {
+            grid-column: 2;
+            grid-row: 2;
+            display: flex;
+            gap: 12px;
+            font-size: 0.8rem;
+            align-items: flex-end;
+        }
+
+        .constructor-stat {
+            color: var(--muted);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .constructor-stat-value {
+            font-weight: 700;
+            color: #f3f4f6;
+            font-size: 0.85rem;
+        }
+
+        .constructor-stat-label {
+            font-size: 0.65rem;
+            white-space: nowrap;
+        }
+
+        .constructor-stat-label {
+            color: var(--muted);
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .constructors-podium-empty {
+            min-height: 176px;
+            border-radius: 16px;
+            border: 1px dashed rgba(118, 149, 217, 0.32);
+            background: rgba(16, 22, 37, 0.54);
+            display: grid;
+            place-items: center;
+            color: var(--muted);
+            text-align: center;
+            padding: 16px;
         }
 
         .participants-grid input {
@@ -580,6 +891,8 @@
         @media (max-width: 1024px) {
             .podium-card,
             .drivers-card,
+            .comisario-card,
+            .constructors-podium-card,
             .timeline-card,
             .participants-card,
             .result-card,
@@ -593,7 +906,7 @@
 
         @media (max-width: 640px) {
             .participant-row {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr auto;
             }
 
             .hero {
@@ -604,7 +917,19 @@
                 font-size: 1.4rem;
             }
 
-            .podium-wrap {
+            .podium-item {
+                min-height: 128px;
+                justify-items: center;
+                text-align: center;
+            }
+
+            .podium-player-photo,
+            .podium-item .avatar {
+                width: 74px;
+                height: 74px;
+            }
+
+            .constructors-podium-grid {
                 grid-template-columns: 1fr;
             }
         }
@@ -628,16 +953,34 @@
         </section>
 
         <section class="grid">
+            <article class="card drivers-card">
+                <h2>Pilotos en Grilla</h2>
+                <p class="caption">Equipo, puntos y tendencia según la ultima carrera.</p>
+                <div class="drivers-grid" id="driversGrid"></div>
+            </article>
+
             <article class="card podium-card">
-                <h2>Podium Actual</h2>
+                <h2>Podium Pilotos</h2>
                 <p class="caption">Top 3 del campeonato en tiempo real.</p>
                 <div class="podium-wrap" id="podiumWrap"></div>
             </article>
 
-            <article class="card drivers-card">
-                <h2>Pilotos en Radar</h2>
-                <p class="caption">Equipo, puntos y tendencia según la ultima carrera.</p>
-                <div class="drivers-grid" id="driversGrid"></div>
+            <article class="card comisario-card">
+                <h2>Comisario deportivo</h2>
+                <div class="comisario-content">
+                    <img id="comisarioImage" class="comisario-image" src="/static/images/comisario.jpg" alt="Comisario" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22%3E%3Crect fill=%22%23333%22 width=%22200%22 height=%22200%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23666%22%3EComisario%3C/text%3E%3C/svg%3E'">
+                    <p class="comisario-title">COMISARIO DEPORTIVO</p>
+                    <input type="file" id="comisarioImageUpload" class="comisario-upload" accept="image/png,image/jpeg">
+                    <div class="comisario-edit-btn" id="comisarioEditBtn">
+                        <button class="secondary" type="button" onclick="document.getElementById('comisarioImageUpload').click()" style="flex: 1;">📸 Cambiar foto</button>
+                    </div>
+                </div>
+            </article>
+
+            <article class="card constructors-podium-card">
+                <h2>Podium Constructores</h2>
+                <p class="caption">Top 3 de equipos y suma de pilotos.</p>
+                <div class="constructors-podium-grid" id="constructorsPodium"></div>
             </article>
 
             <article class="card timeline-card">
@@ -647,7 +990,7 @@
             </article>
 
             <article class="card participants-card write-guard">
-                <h2>1) Participantes</h2>
+                <h2>Participantes</h2>
                 <p class="caption">Carga entre 2 y 20 participantes. En cada fila define nombre y equipo.</p>
 
                 <label class="small-muted" for="seasonStartDate">Fecha de inicio del campeonato (carreras semanales)</label>
@@ -667,7 +1010,7 @@
             </article>
 
             <article class="card result-card write-guard">
-                <h2>2) Cargar resultado de carrera</h2>
+                <h2>Cargar resultado de carrera</h2>
                 <p class="caption">
                     Selecciona la carrera, escribi la fecha y carga clasificacion y/o resultado. Podés guardar uno sin el otro.
                 </p>
@@ -710,7 +1053,7 @@
             </article>
 
             <article class="card leaderboard-card">
-                <h2>3) Tabla de posiciones</h2>
+                <h2>Tabla de posiciones</h2>
                 <p class="caption">Desempate por puntos, victorias, podios y mejor posicion.</p>
                 <div class="table-wrap">
                     <table>
@@ -730,7 +1073,7 @@
                 </div>
             </article>
             <article class="card constructors-card">
-                <h2>3b) Campeonato de Constructores</h2>
+                <h2>Campeonato de Constructores</h2>
                 <p class="caption">Puntos sumados de ambos pilotos del equipo.</p>
                 <div class="table-wrap">
                     <table>
@@ -752,7 +1095,7 @@
 
 
             <article class="card calendar-card">
-                <h2>4) Calendario vigente</h2>
+                <h2>Calendario vigente</h2>
                 <p class="caption">Una carrera por semana en cada pista del calendario.</p>
                 <div class="table-wrap">
                     <table>
@@ -772,7 +1115,7 @@
             </article>
 
             <article class="card race-detail-card">
-                <h2>5) Detalle de carrera</h2>
+                <h2>Detalle de carrera</h2>
                 <p class="caption" id="raceDetailCaption">Toca una carrera del calendario para ver pole y resultado final.</p>
                 <div class="table-wrap">
                     <table>
@@ -835,26 +1178,43 @@
         </div>
     </div>
 
-    <div class="modal-backdrop" id="tvModeModal">
-        <div class="modal tv-modal">
-            <h2 id="tvModeTitle">Modo TV</h2>
-            <p class="small-muted" id="tvModeSubtitle">Vista limpia para compartir resultados.</p>
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Piloto</th>
-                            <th>Puntos</th>
-                            <th>Victorias</th>
-                            <th>Podios</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tvModeBody"></tbody>
-                </table>
+    <div class="modal-backdrop" id="playerProfileModal">
+        <div class="modal" style="max-width: 500px;">
+            <h2 id="playerProfileName">Perfil del piloto</h2>
+            <div style="display: grid; gap: 12px; margin-top: 16px;">
+                <div style="text-align: center;">
+                    <img id="playerProfileImage" class="profile-photo" src="" alt="Foto" style="width: 120px; height: 120px; border-radius: 50%; border: 2px solid rgba(154, 183, 255, 0.32);">
+                </div>
+                <div>
+                    <label class="small-muted">Número</label>
+                    <input type="number" id="playerProfileNumber" placeholder="Ej: 77" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid rgba(116, 146, 214, 0.48); background: rgba(11, 16, 28, 0.82); color: #f3f4f6;">
+                </div>
+                <div>
+                    <label class="small-muted">Bio / Información</label>
+                    <textarea id="playerProfileBio" placeholder="Escribe algo sobre este piloto..." style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid rgba(116, 146, 214, 0.48); background: rgba(11, 16, 28, 0.82); color: #f3f4f6; min-height: 80px; resize: vertical;"></textarea>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.9rem;">
+                    <div style="padding: 10px; border-radius: 8px; background: rgba(57, 215, 255, 0.08); border: 1px solid rgba(57, 215, 255, 0.24);">
+                        <div class="small-muted">Podios Qualy</div>
+                        <div id="playerQualyPodiums" style="font-weight: 700; font-size: 1.1rem;">0</div>
+                    </div>
+                    <div style="padding: 10px; border-radius: 8px; background: rgba(57, 215, 255, 0.08); border: 1px solid rgba(57, 215, 255, 0.24);">
+                        <div class="small-muted">Podios Carrera</div>
+                        <div id="playerRacePodiums" style="font-weight: 700; font-size: 1.1rem;">0</div>
+                    </div>
+                    <div style="padding: 10px; border-radius: 8px; background: rgba(57, 215, 255, 0.08); border: 1px solid rgba(57, 215, 255, 0.24);">
+                        <div class="small-muted">Victorias</div>
+                        <div id="playerWins" style="font-weight: 700; font-size: 1.1rem;">0</div>
+                    </div>
+                    <div style="padding: 10px; border-radius: 8px; background: rgba(57, 215, 255, 0.08); border: 1px solid rgba(57, 215, 255, 0.24);">
+                        <div class="small-muted">Puntos Totales</div>
+                        <div id="playerTotalPoints" style="font-weight: 700; font-size: 1.1rem;">0</div>
+                    </div>
+                </div>
             </div>
-            <div class="btn-bar">
-                <button class="secondary" id="closeTvModeBtn" type="button">Cerrar</button>
+            <div class="btn-bar" style="margin-top: 16px;">
+                <button class="primary" id="savePlayerProfileBtn" type="button">Guardar perfil</button>
+                <button class="secondary" id="closePlayerProfileBtn" type="button">Cerrar</button>
             </div>
         </div>
     </div>
@@ -876,6 +1236,19 @@
             "Racing Bulls",
             "Kick Sauber",
         ];
+        const TEAM_LOGOS = {
+            "Red Bull Racing": "https://media.formula1.com/image/upload/c_fit,h_64/q_auto/v1740000001/common/f1/2025/redbullracing/2025redbullracinglogowhite.webp",
+            "McLaren": "https://media.formula1.com/image/upload/c_fit,h_64/q_auto/v1740000001/common/f1/2025/mclaren/2025mclarenlogowhite.webp",
+            "Ferrari": "https://media.formula1.com/image/upload/c_fit,h_64/q_auto/v1740000001/common/f1/2025/ferrari/2025ferrarilogolight.webp",
+            "Mercedes": "https://media.formula1.com/image/upload/c_fit,h_64/q_auto/v1740000001/common/f1/2025/mercedes/2025mercedeslogowhite.webp",
+            "Aston Martin": "https://media.formula1.com/image/upload/c_fit,h_64/q_auto/v1740000001/common/f1/2025/astonmartin/2025astonmartinlogowhite.webp",
+            "Alpine": "https://media.formula1.com/image/upload/c_fit,h_64/q_auto/v1740000001/common/f1/2025/alpine/2025alpinelogowhite.webp",
+            "Haas": "https://media.formula1.com/image/upload/c_fit,h_64/q_auto/v1740000001/common/f1/2025/haas/2025haaslogowhite.webp",
+            "Williams": "https://media.formula1.com/image/upload/c_fit,h_64/q_auto/v1740000001/common/f1/2025/williams/2025williamslogowhite.webp",
+            "Racing Bulls": "https://media.formula1.com/image/upload/c_fit,h_64/q_auto/v1740000001/common/f1/2025/racingbulls/2025racingbullslogowhite.webp",
+            "Kick Sauber": "https://media.formula1.com/image/upload/c_fit,h_64/q_auto/v1740000001/common/f1/2025/kicksauber/2025kicksauberlogowhite.webp",
+            "Audi": "https://media.formula1.com/image/upload/c_fit,h_64/q_auto/v1740000001/common/f1/2026/audi/2026audilogowhite.webp",
+        };
         let isAuthenticated = false;
         let currentRaceDetailIndex = null;
 
@@ -883,6 +1256,7 @@
         function updateAuthUI() {
             const badge = document.getElementById("authBadge");
             const writeSections = document.querySelectorAll(".write-guard");
+            const comisarioEditBtn = document.getElementById("comisarioEditBtn");
             if (isAuthenticated) {
                 badge.textContent = "✅ Sesion activa — Cerrar sesion";
                 badge.className = "auth-badge logged-in";
@@ -891,6 +1265,7 @@
                     el.style.opacity = "1";
                     el.style.pointerEvents = "auto";
                 });
+                if (comisarioEditBtn) comisarioEditBtn.classList.add("visible");
             } else {
                 badge.textContent = "🔒 Iniciar sesion";
                 badge.className = "auth-badge logged-out";
@@ -899,6 +1274,7 @@
                     el.style.opacity = "0.35";
                     el.style.pointerEvents = "none";
                 });
+                if (comisarioEditBtn) comisarioEditBtn.classList.remove("visible");
             }
         }
 
@@ -980,6 +1356,8 @@
             qualifyingDetails: {},
             raceDetails: {},
             dates: {},
+            playerImages: {},
+            playerBios: {},
         };
 
         function showStatus(message, type) {
@@ -1051,19 +1429,56 @@
             top3.forEach((driver, idx) => {
                 const card = document.createElement("div");
                 const klass = idx === 0 ? "gold" : idx === 1 ? "silver" : "bronze";
+                const imageUrl = state.playerImages?.[driver.name] || "";
+                const stats = calculatePlayerStats(driver.name);
+                
                 card.className = `podium-item ${klass}`;
+                card.style.cursor = "pointer";
+                
+                const statsText = `${stats.racePodiums} podios, ${stats.dnfCount} dnf`;
+                
                 card.innerHTML = `
-                    <div class="place">${fallback[idx]}</div>
-                    <div class="name">${driver.name}</div>
-                    <div class="points">${driver.points} pts</div>
+                    <div class="podium-item-image">
+                        ${imageUrl ? `<img class="podium-player-photo" src="${imageUrl}" alt="${driver.name}">` : `<div class="avatar">${initialsFromName(driver.name)}</div>`}
+                    </div>
+                    <div class="podium-item-info">
+                        <div class="place">${fallback[idx]}</div>
+                        <div class="name">${driver.name}</div>
+                    </div>
+                    <div class="podium-item-stats">
+                        <div class="podium-stat">
+                            <div class="podium-stat-value">${stats.racePodiums}</div>
+                            <div class="podium-stat-label">podios</div>
+                        </div>
+                        <div class="podium-stat">
+                            <div class="podium-stat-value">${stats.dnfCount}</div>
+                            <div class="podium-stat-label">DNF</div>
+                        </div>
+                        <div class="podium-stat">
+                            <div class="podium-stat-value">${driver.points}</div>
+                            <div class="podium-stat-label">pts</div>
+                        </div>
+                    </div>
                 `;
+                card.addEventListener("click", () => openPlayerProfile(driver.name));
                 wrap.appendChild(card);
             });
 
             for (let idx = top3.length; idx < 3; idx += 1) {
                 const card = document.createElement("div");
                 card.className = "podium-item";
-                card.innerHTML = `<div class="place">${fallback[idx]}</div><div class="name">-</div><div class="points">0 pts</div>`;
+                card.innerHTML = `
+                    <div class="podium-item-info">
+                        <div class="place">${fallback[idx]}</div>
+                        <div class="name">-</div>
+                    </div>
+                    <div class="podium-item-stats">
+                        <div class="podium-stat">
+                            <div class="podium-stat-value">-</div>
+                            <div class="podium-stat-label">podios</div>
+                        </div>
+                    </div>
+                `;
                 wrap.appendChild(card);
             }
         }
@@ -1074,11 +1489,13 @@
             (state.leaderboard || []).forEach((driver) => {
                 const trend = getTrend(driver.name);
                 const team = state.teams?.[driver.name] || "Sin equipo";
+                const imageUrl = state.playerImages?.[driver.name] || "";
                 const card = document.createElement("div");
                 card.className = "driver-card";
+                card.style.cursor = "pointer";
                 card.innerHTML = `
                     <div class="driver-top">
-                        <div class="avatar">${initialsFromName(driver.name)}</div>
+                        <div class="avatar">${imageUrl ? `<img class="profile-photo" src="${imageUrl}" alt="${driver.name}">` : initialsFromName(driver.name)}</div>
                         <div>
                             <div class="driver-name">${driver.name}</div>
                             <div class="driver-team">${team}</div>
@@ -1090,8 +1507,60 @@
                     </div>
                     <div class="small-muted">Ultima carrera: +${lastRacePoints(driver.name)} pts</div>
                 `;
+                card.addEventListener("click", () => openPlayerProfile(driver.name));
                 grid.appendChild(card);
             });
+        }
+
+        function teamLogoForName(teamName) {
+            return TEAM_LOGOS[teamName] || TEAM_LOGOS["Kick Sauber"] || "";
+        }
+
+        function renderConstructorsPodium() {
+            const wrap = document.getElementById("constructorsPodium");
+            if (!wrap) return;
+            wrap.innerHTML = "";
+
+            const top3 = (state.teams_leaderboard || []).slice(0, 3);
+            const fallback = ["1ro", "2do", "3ro"];
+
+            top3.forEach((team, idx) => {
+                const card = document.createElement("div");
+                const klass = idx === 0 ? "gold" : idx === 1 ? "silver" : "bronze";
+                const logoUrl = teamLogoForName(team.name);
+                card.className = `constructors-podium-item ${klass}`;
+                card.innerHTML = `
+                    <div class="constructor-logo-shell">
+                        ${logoUrl ? `<img class="constructor-logo" src="${logoUrl}" alt="${team.name}">` : `<strong>${team.name}</strong>`}
+                    </div>
+                    <div class="constructors-podium-top">
+                        <p class="constructors-place">${fallback[idx]}</p>
+                        <p class="constructors-team-name">${team.name}</p>
+                    </div>
+                    <div class="constructors-podium-stats">
+                        <div class="constructor-stat">
+                            <div class="constructor-stat-value">${team.points}</div>
+                            <div class="constructor-stat-label">pts</div>
+                        </div>
+                        <div class="constructor-stat">
+                            <div class="constructor-stat-value">${team.wins}</div>
+                            <div class="constructor-stat-label">wins</div>
+                        </div>
+                        <div class="constructor-stat">
+                            <div class="constructor-stat-value">${team.podiums}</div>
+                            <div class="constructor-stat-label">podios</div>
+                        </div>
+                    </div>
+                `;
+                wrap.appendChild(card);
+            });
+
+            for (let idx = top3.length; idx < 3; idx += 1) {
+                const empty = document.createElement("div");
+                empty.className = "constructors-podium-empty";
+                empty.innerHTML = `<div><strong>${fallback[idx]}</strong><br>Sin equipo clasificado</div>`;
+                wrap.appendChild(empty);
+            }
         }
 
         function renderTimeline() {
@@ -1173,6 +1642,116 @@
             document.getElementById("tvModeModal").classList.remove("open");
         }
 
+        let currentPlayerProfileName = "";
+
+        function calculatePlayerStats(playerName) {
+            const stats = {
+                qualyPodiums: 0,
+                racePodiums: 0,
+                wins: 0,
+                totalPoints: 0,
+                dnfCount: 0,
+            };
+
+            state.schedule.forEach((race) => {
+                const raceKey = String(race.race_index);
+                const qualy = state.qualifying[raceKey] || [];
+                const raceResult = state.results[raceKey] || [];
+
+                const qualyPos = qualy.indexOf(playerName) + 1;
+                if (qualyPos > 0 && qualyPos <= 3) {
+                    stats.qualyPodiums += 1;
+                }
+
+                const racePos = raceResult.indexOf(playerName) + 1;
+                if (racePos > 0 && racePos <= 3) {
+                    stats.racePodiums += 1;
+                }
+                if (racePos === 1) {
+                    stats.wins += 1;
+                }
+
+                const raceStatus = (state.raceDetails?.[raceKey]?.[playerName]?.status || "FINISHED").toUpperCase();
+                if (raceStatus === "DNF" || raceStatus === "DNS") {
+                    stats.dnfCount += 1;
+                } else {
+                    stats.totalPoints += pointsFromPosition(racePos);
+                }
+            });
+
+            return stats;
+        }
+
+        function openPlayerProfile(playerName) {
+            currentPlayerProfileName = playerName;
+            const stats = calculatePlayerStats(playerName);
+            const imageUrl = state.playerImages?.[playerName] || "";
+            const bio = state.playerBios?.[playerName] || {};
+
+            document.getElementById("playerProfileName").textContent = playerName;
+            document.getElementById("playerProfileImage").src = imageUrl;
+            document.getElementById("playerProfileImage").style.display = imageUrl ? "block" : "none";
+            document.getElementById("playerProfileNumber").value = bio.number || "";
+            document.getElementById("playerProfileBio").value = bio.bio || "";
+            document.getElementById("playerQualyPodiums").textContent = stats.qualyPodiums;
+            document.getElementById("playerRacePodiums").textContent = stats.racePodiums;
+            document.getElementById("playerWins").textContent = stats.wins;
+            document.getElementById("playerTotalPoints").textContent = stats.totalPoints;
+
+            // Mostrar/ocultar campos editables y botón guardar según auth
+            const editable = isAuthenticated;
+            document.getElementById("playerProfileNumber").disabled = !editable;
+            document.getElementById("playerProfileBio").disabled = !editable;
+            const saveBtn = document.getElementById("savePlayerProfileBtn");
+            saveBtn.style.display = editable ? "" : "none";
+
+            document.getElementById("playerProfileModal").classList.add("open");
+        }
+
+        function closePlayerProfile() {
+            document.getElementById("playerProfileModal").classList.remove("open");
+            currentPlayerProfileName = "";
+        }
+
+        async function savePlayerProfile() {
+            if (!currentPlayerProfileName) return;
+
+            if (!isAuthenticated) {
+                closePlayerProfile();
+                openLoginModal();
+                return;
+            }
+
+            const profileData = {
+                number: document.getElementById("playerProfileNumber").value || "",
+                bio: document.getElementById("playerProfileBio").value || "",
+            };
+
+            try {
+                const res = await fetch(`${API_BASE}/player-profile`, {
+                    method: "POST",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name: currentPlayerProfileName, profile: profileData }),
+                });
+                const data = await res.json();
+                if (res.status === 401 || data.auth_required) {
+                    closePlayerProfile();
+                    openLoginModal();
+                    return;
+                }
+                if (res.ok) {
+                    showStatus("Perfil guardado correctamente.", "success");
+                    await fetchState();
+                    openPlayerProfile(currentPlayerProfileName);
+                } else {
+                    throw new Error(data.message || "Error al guardar perfil");
+                }
+            } catch (error) {
+                showStatus(error.message || "Error al guardar", "error");
+            }
+        }
+
         function renderParticipantRows(rows) {
             const grid = document.getElementById("participantsGrid");
             grid.innerHTML = "";
@@ -1186,6 +1765,7 @@
                 input.value = row.name || "";
                 input.placeholder = `Participante ${idx + 1}`;
                 input.dataset.index = String(idx);
+                input.dataset.image = row.image || "";
 
                 const select = document.createElement("select");
                 select.dataset.index = String(idx);
@@ -1198,18 +1778,113 @@
                 const fallbackTeam = AVAILABLE_TEAMS[idx % AVAILABLE_TEAMS.length];
                 select.value = row.team && AVAILABLE_TEAMS.includes(row.team) ? row.team : fallbackTeam;
 
+                const imageButton = document.createElement("button");
+                imageButton.type = "button";
+                imageButton.className = "player-photo-upload";
+                imageButton.title = "Subir foto";
+                imageButton.textContent = "📷";
+
+                const imageInput = document.createElement("input");
+                imageInput.type = "file";
+                imageInput.accept = "image/*";
+                imageInput.style.display = "none";
+
+                const imageUrl = row.image || "";
+                if (imageUrl) {
+                    imageButton.innerHTML = `<img class="profile-photo" src="${imageUrl}" alt="Foto de ${row.name || `Participante ${idx + 1}`}">`;
+                }
+
+                imageButton.addEventListener("click", () => imageInput.click());
+                imageInput.addEventListener("change", (event) => {
+                    safeRun(async () => {
+                        await handlePlayerImageUpload(input, imageButton, event.target.files?.[0], row.name || `Participante ${idx + 1}`);
+                        event.target.value = "";
+                    });
+                });
+
                 container.appendChild(input);
                 container.appendChild(select);
+                container.appendChild(imageButton);
+                container.appendChild(imageInput);
                 grid.appendChild(container);
             });
         }
 
+        async function handlePlayerImageUpload(nameInput, imageButton, file, fallbackName) {
+            if (!file) return;
+            const dataUrl = await compressImageToDataUrl(file);
+            nameInput.dataset.image = dataUrl;
+            imageButton.innerHTML = `<img class="profile-photo" src="${dataUrl}" alt="Foto de ${nameInput.value || fallbackName}">`;
+            showStatus("Foto cargada. No olvides guardar participantes.", "success");
+        }
+
+        async function compressImageToDataUrl(file) {
+            try {
+                const loadedImage = await loadImageFromFile(file);
+                const maxDimension = 640;
+                const maxBytes = 220 * 1024;
+
+                const width = loadedImage.naturalWidth || loadedImage.width;
+                const height = loadedImage.naturalHeight || loadedImage.height;
+                const scale = Math.min(1, maxDimension / Math.max(width, height));
+                const targetWidth = Math.max(1, Math.round(width * scale));
+                const targetHeight = Math.max(1, Math.round(height * scale));
+
+                const canvas = document.createElement("canvas");
+                canvas.width = targetWidth;
+                canvas.height = targetHeight;
+                const ctx = canvas.getContext("2d");
+                if (!ctx) throw new Error("No se pudo procesar la imagen");
+
+                ctx.drawImage(loadedImage, 0, 0, targetWidth, targetHeight);
+
+                let quality = 0.86;
+                let dataUrl = canvas.toDataURL("image/jpeg", quality);
+                while (dataUrlSizeBytes(dataUrl) > maxBytes && quality > 0.46) {
+                    quality -= 0.08;
+                    dataUrl = canvas.toDataURL("image/jpeg", quality);
+                }
+                return dataUrl;
+            } catch {
+                return await readFileAsDataUrl(file);
+            }
+        }
+
+        function dataUrlSizeBytes(dataUrl) {
+            const base64 = (dataUrl.split(",")[1] || "").trim();
+            return Math.ceil((base64.length * 3) / 4);
+        }
+
+        function loadImageFromFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const img = new Image();
+                    img.onload = () => resolve(img);
+                    img.onerror = () => reject(new Error("No se pudo abrir la imagen"));
+                    img.src = String(reader.result || "");
+                };
+                reader.onerror = () => reject(new Error("No se pudo leer la imagen"));
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function readFileAsDataUrl(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(String(reader.result || ""));
+                reader.onerror = () => reject(new Error("No se pudo leer la imagen"));
+                reader.readAsDataURL(file);
+            });
+        }
+
         function getParticipantRows() {
-            const inputs = [...document.querySelectorAll("#participantsGrid input")];
+            const inputs = [...document.querySelectorAll("#participantsGrid input[type=\"text\"]")];
             const selects = [...document.querySelectorAll("#participantsGrid select")];
             return inputs.map((input, idx) => ({
                 name: input.value.trim(),
                 team: (selects[idx]?.value || "").trim(),
+                image: input.dataset.image || "",
             }));
         }
 
@@ -1219,7 +1894,7 @@
                 showStatus("No puedes agregar más de 20 participantes.", "error");
                 return;
             }
-            rows.push({ name: "", team: AVAILABLE_TEAMS[rows.length % AVAILABLE_TEAMS.length] });
+            rows.push({ name: "", team: AVAILABLE_TEAMS[rows.length % AVAILABLE_TEAMS.length], image: "" });
             renderParticipantRows(rows);
         }
 
@@ -1479,14 +2154,31 @@
                 return a.name.localeCompare(b.name, "es", { sensitivity: "base" });
             });
 
+            // Encontrar el mejor tiempo (el más rápido)
+            let bestTimeValue = null;
+            rows.forEach((row) => {
+                if (row.bestTime && row.bestTime !== "-") {
+                    const timeStr = row.bestTime.toString();
+                    const timeNum = parseFloat(timeStr);
+                    if (!isNaN(timeNum) && (bestTimeValue === null || timeNum < bestTimeValue)) {
+                        bestTimeValue = timeNum;
+                    }
+                }
+            });
+            const bestTimeDisplay = bestTimeValue !== null ? bestTimeValue.toString() : null;
+
             rows.forEach((row) => {
                 const tr = document.createElement("tr");
+                const isBestTime = row.bestTime === bestTimeDisplay && row.bestTime !== "-";
+                const bestTimeHtml = isBestTime 
+                    ? `<span class="best-time-highlight">${row.bestTime}</span>` 
+                    : row.bestTime;
                 tr.innerHTML = `
                     <td>${row.name}</td>
                     <td>${row.qPos ?? "-"}</td>
                     <td>${row.qTime}</td>
                     <td>${row.rPos ?? "-"}</td>
-                    <td>${row.bestTime}</td>
+                    <td>${bestTimeHtml}</td>
                     <td>${row.status === "-" && row.rPos ? "FINISHED" : row.status}</td>
                 `;
                 body.appendChild(tr);
@@ -1508,13 +2200,20 @@
 
         async function exportRaceDetailPng() {
             const modalContent = document.querySelector("#raceDetailModal .race-detail-modal");
+            const tableWrap = document.querySelector("#raceDetailModal .table-wrap");
             if (!modalContent || !window.html2canvas) {
                 throw new Error("No se pudo exportar PNG en este navegador.");
             }
+            // Expandir tabla temporalmente
+            if (tableWrap) tableWrap.classList.add("expanded");
             const canvas = await window.html2canvas(modalContent, {
                 backgroundColor: "#0b1120",
                 scale: 2,
+                scrollY: -window.scrollY,
+                scrollX: -window.scrollX,
             });
+            // Contraer tabla
+            if (tableWrap) tableWrap.classList.remove("expanded");
             const link = document.createElement("a");
             link.href = canvas.toDataURL("image/png");
             link.download = `${currentRaceFileLabel()}.png`;
@@ -1527,10 +2226,17 @@
                 throw new Error("No se pudo exportar PDF en este navegador.");
             }
             const modalContent = document.querySelector("#raceDetailModal .race-detail-modal");
+            const tableWrap = document.querySelector("#raceDetailModal .table-wrap");
+            // Expandir tabla temporalmente
+            if (tableWrap) tableWrap.classList.add("expanded");
             const canvas = await window.html2canvas(modalContent, {
                 backgroundColor: "#0b1120",
                 scale: 2,
+                scrollY: -window.scrollY,
+                scrollX: -window.scrollX,
             });
+            // Contraer tabla
+            if (tableWrap) tableWrap.classList.remove("expanded");
             const imgData = canvas.toDataURL("image/png");
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
@@ -1745,21 +2451,25 @@
             state.dates = data.dates || {};
             state.teams = data.teams || {};
             state.teams_leaderboard = data.teams_leaderboard || [];
+            state.playerImages = data.player_images || {};
+            state.playerBios = data.player_bios || {};
 
             document.getElementById("seasonStartDate").value = data.season_start_date;
             const rows = state.participants.length > 0
                 ? state.participants.map((name, idx) => ({
                     name,
                     team: state.teams[name] || AVAILABLE_TEAMS[idx % AVAILABLE_TEAMS.length],
+                    image: state.playerImages[name] || "",
                 }))
                 : [
-                    { name: "", team: AVAILABLE_TEAMS[0] },
-                    { name: "", team: AVAILABLE_TEAMS[1] },
+                    { name: "", team: AVAILABLE_TEAMS[0], image: "" },
+                    { name: "", team: AVAILABLE_TEAMS[1], image: "" },
                 ];
             renderParticipantRows(rows);
             renderRaceSelect(state.schedule);
             renderLeaderboard(state.leaderboard);
             renderConstructorsLeaderboard();
+            renderConstructorsPodium();
             renderSchedule(state.schedule);
             renderPodium();
             renderDriversGrid();
@@ -1809,8 +2519,10 @@
             const filledRows = rows.filter((row) => row.name);
             const participants = filledRows.map((row) => row.name);
             const teams = {};
+            const playerImages = {};
             filledRows.forEach((row) => {
                 if (row.name) teams[row.name] = row.team;
+                if (row.name && row.image) playerImages[row.name] = row.image;
             });
             const seasonStartDate = document.getElementById("seasonStartDate").value;
 
@@ -1818,7 +2530,7 @@
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ participants, season_start_date: seasonStartDate, teams }),
+                body: JSON.stringify({ participants, season_start_date: seasonStartDate, teams, player_images: playerImages }),
             });
 
             const data = await response.json();
@@ -1899,43 +2611,93 @@
             }
         }
 
-        document.getElementById("addParticipantBtn").addEventListener("click", addParticipant);
-        document.getElementById("removeParticipantBtn").addEventListener("click", removeParticipant);
-        document.getElementById("saveParticipantsBtn").addEventListener("click", () => safeRun(saveParticipants));
-        document.getElementById("restartChampionshipBtn").addEventListener("click", () => safeRun(restartChampionship));
-        document.getElementById("saveResultBtn").addEventListener("click", () => safeRun(saveRaceResult));
-        document.getElementById("fillTemplateBtn").addEventListener("click", fillTemplate);
-        document.getElementById("uploadQualyBtn").addEventListener("click", () => {
+        function safeAddListener(elementId, event, handler) {
+            const el = document.getElementById(elementId);
+            if (el) {
+                el.addEventListener(event, handler);
+            }
+        }
+
+        safeAddListener("addParticipantBtn", "click", addParticipant);
+        safeAddListener("removeParticipantBtn", "click", removeParticipant);
+        safeAddListener("saveParticipantsBtn", "click", () => safeRun(saveParticipants));
+        safeAddListener("restartChampionshipBtn", "click", () => safeRun(restartChampionship));
+        safeAddListener("saveResultBtn", "click", () => safeRun(saveRaceResult));
+        safeAddListener("fillTemplateBtn", "click", fillTemplate);
+        safeAddListener("uploadQualyBtn", "click", () => {
             document.getElementById("qualifyingImageInput").click();
         });
-        document.getElementById("uploadRaceBtn").addEventListener("click", () => {
+        safeAddListener("uploadRaceBtn", "click", () => {
             document.getElementById("raceImageInput").click();
         });
 
-        document.getElementById("qualifyingImageInput").addEventListener("change", (e) => safeRun(async () => {
+        safeAddListener("qualifyingImageInput", "change", (e) => safeRun(async () => {
             await applyOcrToTextarea(e.target.files?.[0], "qualifyingInput", "qualy");
             e.target.value = "";
         }));
-        document.getElementById("raceImageInput").addEventListener("change", (e) => safeRun(async () => {
+        safeAddListener("raceImageInput", "change", (e) => safeRun(async () => {
             await applyOcrToTextarea(e.target.files?.[0], "classificationInput", "carrera");
             e.target.value = "";
         }));
-        document.getElementById("exportRacePngBtn").addEventListener("click", () => safeRun(exportRaceDetailPng));
-        document.getElementById("exportRacePdfBtn").addEventListener("click", () => safeRun(exportRaceDetailPdf));
-        document.getElementById("closeRaceDetailBtn").addEventListener("click", closeRaceDetailModal);
-        document.getElementById("raceDetailModal").addEventListener("click", (e) => {
-            if (e.target === e.currentTarget) closeRaceDetailModal();
-        });
-        document.getElementById("tvModeBtn").addEventListener("click", openTvMode);
-        document.getElementById("closeTvModeBtn").addEventListener("click", closeTvMode);
-        document.getElementById("tvModeModal").addEventListener("click", (e) => {
-            if (e.target === e.currentTarget) closeTvMode();
-        });
+        safeAddListener("exportRacePngBtn", "click", () => safeRun(exportRaceDetailPng));
+        safeAddListener("exportRacePdfBtn", "click", () => safeRun(exportRaceDetailPdf));
+        safeAddListener("closeRaceDetailBtn", "click", closeRaceDetailModal);
+        
+        safeAddListener("comisarioImageUpload", "change", (e) => safeRun(async () => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = document.getElementById("comisarioImage");
+                img.src = event.target.result;
+                // Guardar en localStorage
+                localStorage.setItem("comisarioImage", event.target.result);
+                showStatus("Foto del comisario guardada.", "success");
+            };
+            reader.readAsDataURL(file);
+            e.target.value = "";
+        }));
+        
+        // Cargar comisario del localStorage si existe
+        const savedComisario = localStorage.getItem("comisarioImage");
+        if (savedComisario) {
+            document.getElementById("comisarioImage").src = savedComisario;
+        }
+        
+        const raceDetailModal = document.getElementById("raceDetailModal");
+        if (raceDetailModal) {
+            raceDetailModal.addEventListener("click", (e) => {
+                if (e.target === e.currentTarget) closeRaceDetailModal();
+            });
+        }
+        
+        safeAddListener("tvModeBtn", "click", openTvMode);
+        safeAddListener("closeTvModeBtn", "click", closeTvMode);
+        
+        const tvModeModal = document.getElementById("tvModeModal");
+        if (tvModeModal) {
+            tvModeModal.addEventListener("click", (e) => {
+                if (e.target === e.currentTarget) closeTvMode();
+            });
+        }
+
+        safeAddListener("savePlayerProfileBtn", "click", () => safeRun(savePlayerProfile));
+        safeAddListener("closePlayerProfileBtn", "click", closePlayerProfile);
+        
+        const playerProfileModal = document.getElementById("playerProfileModal");
+        if (playerProfileModal) {
+            playerProfileModal.addEventListener("click", (e) => {
+                if (e.target === e.currentTarget) closePlayerProfile();
+            });
+        }
 
         // Al cambiar de carrera en el select, precargar datos guardados
-        document.getElementById("raceSelect").addEventListener("change", (e) => {
-            selectRace(Number(e.target.value));
-        });
+        const raceSelect = document.getElementById("raceSelect");
+        if (raceSelect) {
+            raceSelect.addEventListener("change", (e) => {
+                selectRace(Number(e.target.value));
+            });
+        }
 
         safeRun(async () => {
             const authRes = await fetch(`${API_BASE}/auth-status`, { credentials: "include" });
@@ -1944,8 +2706,8 @@
             await fetchState();
         }).catch(() => {
             renderParticipantRows([
-                { name: "", team: AVAILABLE_TEAMS[0] },
-                { name: "", team: AVAILABLE_TEAMS[1] },
+                { name: "", team: AVAILABLE_TEAMS[0], image: "" },
+                { name: "", team: AVAILABLE_TEAMS[1], image: "" },
             ]);
         });
     </script>
