@@ -984,12 +984,6 @@
         </section>
 
         <section class="grid">
-            <article class="card drivers-card">
-                <h2>Pilotos en Grilla</h2>
-                <p class="caption">Equipo, puntos y tendencia según la ultima carrera.</p>
-                <div class="drivers-grid" id="driversGrid"></div>
-            </article>
-
             <article class="card podium-card">
                 <h2>Podium Pilotos</h2>
                 <p class="caption">Top 3 del campeonato en tiempo real.</p>
@@ -1012,6 +1006,12 @@
                 <h2>Podium Constructores</h2>
                 <p class="caption">Top 3 de equipos y suma de pilotos.</p>
                 <div class="constructors-podium-grid" id="constructorsPodium"></div>
+            </article>
+
+            <article class="card drivers-card">
+                <h2>Pilotos en Grilla</h2>
+                <p class="caption">Equipo, puntos y tendencia según la ultima carrera.</p>
+                <div class="drivers-grid" id="driversGrid"></div>
             </article>
 
             <article class="card timeline-card">
@@ -2151,6 +2151,24 @@
             };
         }
 
+        function lapTimeToSeconds(raw) {
+            if (raw === null || raw === undefined) return null;
+            const text = String(raw).trim();
+            if (!text || text === "-") return null;
+
+            if (text.includes(":")) {
+                const parts = text.split(":");
+                if (parts.length !== 2) return null;
+                const minutes = Number(parts[0]);
+                const seconds = Number(parts[1]);
+                if (!Number.isFinite(minutes) || !Number.isFinite(seconds)) return null;
+                return (minutes * 60) + seconds;
+            }
+
+            const onlySeconds = Number(text);
+            return Number.isFinite(onlySeconds) ? onlySeconds : null;
+        }
+
         function parseDetailedClassification(raw, kind) {
             const lines = raw
                 .split("\n")
@@ -2246,19 +2264,17 @@
             // Encontrar el mejor tiempo (el más rápido)
             let bestTimeValue = null;
             rows.forEach((row) => {
-                if (row.bestTime && row.bestTime !== "-") {
-                    const timeStr = row.bestTime.toString();
-                    const timeNum = parseFloat(timeStr);
-                    if (!isNaN(timeNum) && (bestTimeValue === null || timeNum < bestTimeValue)) {
-                        bestTimeValue = timeNum;
-                    }
+                const seconds = lapTimeToSeconds(row.bestTime);
+                if (seconds === null) return;
+                if (bestTimeValue === null || seconds < bestTimeValue) {
+                    bestTimeValue = seconds;
                 }
             });
-            const bestTimeDisplay = bestTimeValue !== null ? bestTimeValue.toString() : null;
 
             rows.forEach((row) => {
                 const tr = document.createElement("tr");
-                const isBestTime = row.bestTime === bestTimeDisplay && row.bestTime !== "-";
+                const rowBestSeconds = lapTimeToSeconds(row.bestTime);
+                const isBestTime = rowBestSeconds !== null && bestTimeValue !== null && rowBestSeconds === bestTimeValue;
                 const bestTimeHtml = isBestTime 
                     ? `<span class="best-time-highlight">${row.bestTime}</span>` 
                     : row.bestTime;
