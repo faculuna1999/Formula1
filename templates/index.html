@@ -480,8 +480,8 @@
             border-radius: 10px;
             background: rgba(13, 19, 32, 0.9);
             padding: 6px;
-            width: 188px;
-            min-width: 188px;
+            width: 170px;
+            min-width: 170px;
             text-align: left;
             cursor: pointer;
             color: #eef4ff;
@@ -526,8 +526,8 @@
         }
 
         .tv-player-modal {
-            max-width: 960px;
-            width: min(96vw, 960px);
+            max-width: 760px;
+            width: min(92vw, 760px);
             border-color: rgba(57, 215, 255, 0.65);
             background: linear-gradient(160deg, rgba(10, 15, 26, 0.96), rgba(13, 19, 32, 0.98));
             padding: 18px;
@@ -544,7 +544,7 @@
 
         .tv-player-wrap video {
             width: 100%;
-            max-height: 68vh;
+            max-height: 48vh;
             display: block;
             background: #000;
         }
@@ -553,13 +553,13 @@
             position: absolute;
             top: 50%;
             transform: translateY(-50%);
-            width: 44px;
-            height: 44px;
+            width: 38px;
+            height: 38px;
             border-radius: 999px;
             border: 1px solid rgba(255, 255, 255, 0.36);
             background: rgba(0, 0, 0, 0.55);
             color: #fff;
-            font-size: 1.4rem;
+            font-size: 1.15rem;
             cursor: pointer;
             z-index: 2;
         }
@@ -2088,13 +2088,8 @@
             if (!grid) return;
             const counterEl = document.getElementById("tvModeCounter");
 
-            const categories = [
-                { key: "epic_fails", label: "Epic fails" },
-                { key: "mejores_adelantamientos", label: "Mejores adelantamientos" },
-            ];
-
-            const totalClips = categories.reduce((acc, category) => {
-                const clips = Array.isArray(state.tvClips?.[category.key]) ? state.tvClips[category.key] : [];
+            const totalClips = TV_CATEGORIES.reduce((acc, category) => {
+                const clips = getCategoryClips(category.key);
                 return acc + clips.length;
             }, 0);
             if (counterEl) {
@@ -2102,26 +2097,35 @@
             }
 
             grid.innerHTML = "";
-            categories.forEach((category) => {
+            TV_CATEGORIES.forEach((category) => {
                 const card = document.createElement("article");
                 card.className = "tv-category-card";
 
-                const clips = Array.isArray(state.tvClips?.[category.key]) ? state.tvClips[category.key] : [];
+                const clips = getCategoryClips(category.key);
                 const clipsHtml = clips.length
-                    ? clips.map((clip) => `
-                        <div class="tv-video-card">
-                            <video controls preload="metadata" src="${escapeHtml(clip.video_url)}"></video>
-                            <div class="tv-video-title">${escapeHtml(clip.title)}</div>
-                            <div class="tv-video-meta">Participan: ${escapeHtml(clip.participants || "-")}</div>
-                        </div>
+                    ? clips.map((clip, idx) => `
+                        <button class="tv-video-thumb" type="button" data-tv-category="${category.key}" data-tv-index="${idx}">
+                            <video muted playsinline preload="metadata" src="${escapeHtml(clip.video_url)}"></video>
+                            <span class="tv-video-title">${escapeHtml(clip.title)}</span>
+                            <span class="tv-video-meta">${escapeHtml(clip.participants || "-")}</span>
+                        </button>
                     `).join("")
                     : '<div class="tv-empty">Todavia no hay videos cargados.</div>';
 
                 card.innerHTML = `
                     <h4 class="tv-category-title">${category.label}</h4>
-                    ${clipsHtml}
+                    <div class="tv-video-strip">${clipsHtml}</div>
                 `;
                 grid.appendChild(card);
+
+                const thumbs = card.querySelectorAll(".tv-video-thumb");
+                thumbs.forEach((thumb) => {
+                    thumb.addEventListener("click", () => {
+                        const categoryKey = thumb.getAttribute("data-tv-category") || "epic_fails";
+                        const clipIndex = Number(thumb.getAttribute("data-tv-index") || "0");
+                        openTvPlayer(categoryKey, clipIndex);
+                    });
+                });
             });
         }
 
