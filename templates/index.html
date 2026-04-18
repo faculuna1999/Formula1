@@ -1562,6 +1562,11 @@
                         <label for="tvParticipantsInput">Quienes participaron</label>
                         <input id="tvParticipantsInput" type="text" maxlength="160" placeholder="Ej: Facu, Nico y Agus">
 
+                        <label for="tvRaceInput">Carrera</label>
+                        <select id="tvRaceInput">
+                            <option value="">Sin especificar</option>
+                        </select>
+
                         <label for="tvVideoInput">Video</label>
                         <input id="tvVideoInput" type="file" accept="video/*" required>
 
@@ -1587,6 +1592,7 @@
                 <button class="tv-player-arrow next" id="tvPlayerNextBtn" type="button" aria-label="Siguiente">&#10095;</button>
             </div>
             <div class="tv-player-title" id="tvPlayerTitle">Titulo</div>
+            <div class="tv-player-subtitle" id="tvPlayerRace">Carrera: -</div>
             <div class="tv-player-subtitle" id="tvPlayerParticipants">Participan: -</div>
             <div class="btn-bar" style="margin-top: 12px;">
                 <button class="secondary danger" id="deleteCurrentTvClipBtn" type="button">Eliminar clip</button>
@@ -1810,6 +1816,29 @@
             return Array.isArray(state.tvClips?.[categoryKey]) ? state.tvClips[categoryKey] : [];
         }
 
+        function renderTvRaceOptions() {
+            const select = document.getElementById("tvRaceInput");
+            if (!select) return;
+
+            const currentValue = select.value || "";
+            const tracks = (state.schedule || [])
+                .map((race) => race.track)
+                .filter((track) => typeof track === "string" && track.trim());
+            const uniqueTracks = [...new Set(tracks)];
+
+            select.innerHTML = '<option value="">Sin especificar</option>';
+            uniqueTracks.forEach((track) => {
+                const option = document.createElement("option");
+                option.value = track;
+                option.textContent = track;
+                select.appendChild(option);
+            });
+
+            if (currentValue && uniqueTracks.includes(currentValue)) {
+                select.value = currentValue;
+            }
+        }
+
         function setTvUploadStatus(message = "", type = "") {
             const el = document.getElementById("tvUploadStatus");
             if (!el) return;
@@ -1852,6 +1881,7 @@
                             <button class="tv-video-thumb" type="button" data-tv-category="${category.key}" data-tv-index="${idx}" data-tv-clip-id="${escapeHtml(clip.id || "")}">
                                 <video muted playsinline preload="metadata" src="${escapeHtml(clip.video_url)}"></video>
                                 <span class="tv-video-title">${escapeHtml(clip.title)}</span>
+                                <span class="tv-video-meta">Carrera: ${escapeHtml(clip.race || "-")}</span>
                                 <span class="tv-video-meta">${escapeHtml(clip.participants || "-")}</span>
                             </button>
                             <button class="tv-video-delete" type="button" data-tv-delete-category="${category.key}" data-tv-delete-id="${escapeHtml(clip.id || "")}" aria-label="Eliminar clip">×</button>
@@ -1951,12 +1981,14 @@
             const categoryEl = document.getElementById("tvPlayerCategory");
             const counterEl = document.getElementById("tvPlayerCounter");
             const titleEl = document.getElementById("tvPlayerTitle");
+            const raceEl = document.getElementById("tvPlayerRace");
             const participantsEl = document.getElementById("tvPlayerParticipants");
             const deleteCurrentBtn = document.getElementById("deleteCurrentTvClipBtn");
 
             if (categoryEl) categoryEl.textContent = category ? category.label : "Modo TV";
             if (counterEl) counterEl.textContent = `${currentTvPlayerIndex + 1} / ${clips.length}`;
             if (titleEl) titleEl.textContent = clip.title || "Sin titulo";
+            if (raceEl) raceEl.textContent = `Carrera: ${clip.race || "-"}`;
             if (participantsEl) participantsEl.textContent = `Participan: ${clip.participants || "-"}`;
             if (deleteCurrentBtn) {
                 deleteCurrentBtn.dataset.tvDeleteCategory = currentTvPlayerCategory;
@@ -2206,6 +2238,7 @@
                 const category = document.getElementById("tvCategoryInput").value;
                 const title = document.getElementById("tvTitleInput").value.trim();
                 const participants = document.getElementById("tvParticipantsInput").value.trim();
+                const race = document.getElementById("tvRaceInput").value.trim();
                 const videoFile = document.getElementById("tvVideoInput").files?.[0];
 
                 if (!title) {
@@ -2225,6 +2258,7 @@
                 formData.append("category", category);
                 formData.append("title", title);
                 formData.append("participants", participants);
+                formData.append("race", race);
                 formData.append("video", videoFile);
 
                 const response = await fetch(`${API_BASE}/tv-clips`, {
@@ -3145,6 +3179,7 @@
             state.playerBios = data.player_bios || {};
             state.comisarioImage = data.comisario_image || "";
             state.tvClips = data.tv_clips || {};
+            renderTvRaceOptions();
 
             document.getElementById("seasonStartDate").value = data.season_start_date;
             const rows = state.participants.length > 0

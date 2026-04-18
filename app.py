@@ -314,6 +314,7 @@ def normalize_tv_clips(raw):
             title = (item.get("title") or "").strip()
             video_url = (item.get("video_url") or "").strip()
             participants = (item.get("participants") or "").strip()
+            race = (item.get("race") or "").strip()
             clip_id = (item.get("id") or "").strip()
             public_id = (item.get("public_id") or "").strip()
             created_at = (item.get("created_at") or "").strip()
@@ -326,6 +327,7 @@ def normalize_tv_clips(raw):
                     "id": clip_id or secrets.token_hex(8),
                     "title": title[:120],
                     "participants": participants[:160],
+                    "race": race[:100],
                     "video_url": video_url,
                     "public_id": public_id[:180],
                     "created_at": created_at,
@@ -386,6 +388,7 @@ def recover_tv_clips_from_cloudinary(force=False):
             context_custom = (((item.get("context") or {}).get("custom") or {}))
             title = (context_custom.get("title") or "").strip()
             participants = (context_custom.get("participants") or "").strip()
+            race = (context_custom.get("race") or "").strip()
             created_at = (context_custom.get("created_at") or item.get("created_at") or "").strip()
 
             if not title:
@@ -397,6 +400,7 @@ def recover_tv_clips_from_cloudinary(force=False):
                     "id": (item.get("asset_id") or public_id or secrets.token_hex(8)).strip(),
                     "title": title[:120],
                     "participants": participants[:160],
+                    "race": race[:100],
                     "video_url": secure_url,
                     "public_id": public_id,
                     "created_at": created_at,
@@ -1059,6 +1063,10 @@ def api_create_tv_clip():
     if len(participants) > 160:
         return jsonify({"status": "error", "message": "Participantes demasiado largo."}), 400
 
+    race = (form_data.get("race") or json_data.get("race") or "").strip()
+    if len(race) > 100:
+        return jsonify({"status": "error", "message": "Nombre de carrera demasiado largo."}), 400
+
     video_url = ""
     uploaded_file = request.files.get("video")
     if uploaded_file and uploaded_file.filename:
@@ -1088,6 +1096,7 @@ def api_create_tv_clip():
                     "context": (
                         f"title={sanitize_cloudinary_context_value(title)}|"
                         f"participants={sanitize_cloudinary_context_value(participants)}|"
+                        f"race={sanitize_cloudinary_context_value(race)}|"
                         f"created_at={sanitize_cloudinary_context_value(created_at)}"
                     ),
                 },
@@ -1109,6 +1118,7 @@ def api_create_tv_clip():
         "id": secrets.token_hex(8),
         "title": title[:120],
         "participants": participants[:160],
+        "race": race[:100],
         "video_url": video_url,
         "public_id": public_id if 'public_id' in locals() else "",
         "created_at": created_at if 'created_at' in locals() else datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
