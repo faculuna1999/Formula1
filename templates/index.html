@@ -525,7 +525,7 @@
             text-overflow: ellipsis;
         }
 
-        .tv-player-modal {
+        .modal.tv-player-modal {
             max-width: 900px;
             width: min(94vw, 900px);
             border-color: rgba(57, 215, 255, 0.65);
@@ -2072,65 +2072,6 @@
             document.documentElement.style.setProperty("--accent", theme.accent);
             document.documentElement.style.setProperty("--accent-dark", theme.dark);
             document.documentElement.style.setProperty("--accent-cyan", theme.cyan);
-        }
-
-        function renderTvMode() {
-            const titleEl = document.getElementById("tvModeTitle");
-            if (titleEl) titleEl.textContent = "Modo TV - Liga autitos chocadores";
-            const nextRaceLabel = state.nextRace
-                ? `Proxima: R${state.nextRace.round} - ${state.nextRace.track}`
-                : "Temporada finalizada";
-            const subtitleEl = document.getElementById("tvModeSubtitle");
-            if (subtitleEl) {
-                subtitleEl.textContent = `${state.completedRaces}/${state.totalRaces} carreras completadas | ${nextRaceLabel}`;
-            }
-            renderTvClips();
-        }
-
-        function renderTvClips() {
-            const grid = document.getElementById("tvClipsGrid");
-            if (!grid) return;
-            const counterEl = document.getElementById("tvModeCounter");
-
-            const totalClips = TV_CATEGORIES.reduce((acc, category) => {
-                const clips = getCategoryClips(category.key);
-                return acc + clips.length;
-            }, 0);
-            if (counterEl) {
-                counterEl.textContent = `${totalClips} clip${totalClips === 1 ? "" : "s"}`;
-            }
-
-            grid.innerHTML = "";
-            TV_CATEGORIES.forEach((category) => {
-                const card = document.createElement("article");
-                card.className = "tv-category-card";
-
-                const clips = getCategoryClips(category.key);
-                const clipsHtml = clips.length
-                    ? clips.map((clip, idx) => `
-                        <button class="tv-video-thumb" type="button" data-tv-category="${category.key}" data-tv-index="${idx}">
-                            <video muted playsinline preload="metadata" src="${escapeHtml(clip.video_url)}"></video>
-                            <span class="tv-video-title">${escapeHtml(clip.title)}</span>
-                            <span class="tv-video-meta">${escapeHtml(clip.participants || "-")}</span>
-                        </button>
-                    `).join("")
-                    : '<div class="tv-empty">Todavia no hay videos cargados.</div>';
-
-                card.innerHTML = `
-                    <h4 class="tv-category-title">${category.label}</h4>
-                    <div class="tv-video-strip">${clipsHtml}</div>
-                `;
-                grid.appendChild(card);
-
-                const thumbs = card.querySelectorAll(".tv-video-thumb");
-                thumbs.forEach((thumb) => {
-                    thumb.addEventListener("click", () => {
-                        const categoryKey = thumb.getAttribute("data-tv-category") || "epic_fails";
-                        const clipIndex = Number(thumb.getAttribute("data-tv-index") || "0");
-                        openTvPlayer(categoryKey, clipIndex);
-                    });
-                });
-            });
         }
 
         async function saveTvClip(event) {

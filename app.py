@@ -47,6 +47,11 @@ _CLOUDINARY_CACHE = {
     "resources": {},
 }
 
+_CLOUDINARY_TV_CACHE = {
+    "expires_at": 0,
+    "clips": {},
+}
+
 
 def login_required(f):
     """Decorador que protege endpoints de escritura."""
@@ -169,6 +174,15 @@ def clip_public_id(category, title):
     return f"facu-demo/tv/{category_slug}/{int(time.time())}-{title_slug}"
 
 
+CATEGORY_SLUG_TO_KEY = {slugify_identifier(key): key for key in TV_VIDEO_CATEGORIES}
+
+
+def sanitize_cloudinary_context_value(value):
+    text = (value or "").strip()
+    # Cloudinary context uses key=value|key=value syntax.
+    return text.replace("|", " ").replace("=", "-")[:200]
+
+
 def parse_data_image(data_url):
     match = re.match(r"^data:(image/[a-zA-Z0-9.+-]+);base64,(.+)$", data_url or "", re.DOTALL)
     if not match:
@@ -237,7 +251,7 @@ def upload_data_image_to_cloudinary(data_url, public_id):
     return secure_url.strip()
 
 
-def upload_binary_to_cloudinary(binary, mime_type, filename, public_id, resource_type):
+def upload_binary_to_cloudinary(binary, mime_type, filename, public_id, resource_type, extra_upload_params=None):
     if not cloudinary_is_configured():
         raise RuntimeError("Cloudinary no esta configurado.")
 
@@ -256,6 +270,11 @@ def upload_binary_to_cloudinary(binary, mime_type, filename, public_id, resource
         "api_key": CLOUDINARY_API_KEY,
         "signature": signature,
     }
+    if isinstance(extra_upload_params, dict):
+        for key, value in extra_upload_params.items():
+            if value is None:
+                continue
+            payload[key] = value
     files = {
         "file": (filename, binary, mime_type),
     }
@@ -309,6 +328,84 @@ def normalize_tv_clips(raw):
         normalized[category] = safe_items[:30]
 
     return normalized
+
+
+def recover_tv_clips_from_cloudinary(force=False):
+    if not cloudinary_is_configured():
+        return {key: [] for key in TV_VIDEO_CATEGORIES}
+
+    now = time.time()
+    if not force and _CLOUDINARY_TV_CACHE["expires_at"] > now:
+        return _CLOUDINARY_TV_CACHE["clips"]
+
+    recovered = {key: [] for key in TV_VIDEO_CATEGORIES}
+    endpoint = f"https://api.cloudinary.com/v1_1/{CLOUDINARY_CLOUD_NAME}/resources/video/upload"
+    cursor = None
+
+    while True:
+        params = {
+            "prefix": "facu-demo/tv/",
+            "max_results": 200,
+            "context": True,
+        }
+        if cursor:
+            params["next_cursor"] = cursor
+
+        response = requests.get(
+            endpoint,
+            params=params,
+            auth=(CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET),
+            timeout=30,
+        )
+        if response.status_code >= 400:
+            logger.warning("No se pudieron listar clips TV de Cloudinary: %s", response.text[:250])
+            break
+
+        data = response.json()
+        for item in data.get("resources", []):
+            public_id = (item.get("public_id") or "").strip()
+            secure_url = (item.get("secure_url") or "").strip()
+            if not public_id.startswith("facu-demo/tv/") or not secure_url:
+                continue
+
+            parts = public_id.split("/")
+            if len(parts) < 4:
+                continue
+            category_slug = parts[2].strip().lower()
+            category_key = CATEGORY_SLUG_TO_KEY.get(category_slug)
+            if not category_key:
+                continue
+
+            context_custom = (((item.get("context") or {}).get("custom") or {}))
+            title = (context_custom.get("title") or "").strip()
+            participants = (context_custom.get("participants") or "").strip()
+            created_at = (context_custom.get("created_at") or item.get("created_at") or "").strip()
+
+            if not title:
+                tail = parts[-1]
+                title = re.sub(r"^\d+-", "", tail).replace("-", " ").strip() or "Clip"
+
+            recovered[category_key].append(
+                {
+                    "id": (item.get("asset_id") or public_id or secrets.token_hex(8)).strip(),
+                    "title": title[:120],
+                    "participants": participants[:160],
+                    "video_url": secure_url,
+                    "created_at": created_at,
+                }
+            )
+
+        cursor = data.get("next_cursor")
+        if not cursor:
+            break
+
+    for category_key in recovered:
+        recovered[category_key].sort(key=lambda row: row.get("created_at", ""), reverse=True)
+        recovered[category_key] = recovered[category_key][:30]
+
+    _CLOUDINARY_TV_CACHE["clips"] = recovered
+    _CLOUDINARY_TV_CACHE["expires_at"] = now + 120
+    return recovered
 
 
 def fetch_cloudinary_resources_map(force=False):
@@ -414,6 +511,8 @@ def load_seed_state():
 def load_state():
     if not DATA_FILE.exists():
         state = load_seed_state() or build_default_state()
+        if cloudinary_is_configured():
+            state["tv_clips"] = recover_tv_clips_from_cloudinary()
         save_state(state)
         return state
 
@@ -480,6 +579,10 @@ def load_state():
         comisario_url = cloudinary_resources.get(COMISARIO_PUBLIC_ID)
         if isinstance(comisario_url, str) and comisario_url.strip():
             state["comisario_image"] = comisario_url
+
+    has_any_tv_clip = any(state["tv_clips"].get(category) for category in TV_VIDEO_CATEGORIES)
+    if cloudinary_is_configured() and not has_any_tv_clip:
+        state["tv_clips"] = recover_tv_clips_from_cloudinary()
     return state
 
 
@@ -936,6 +1039,7 @@ def api_create_tv_clip():
             return jsonify({"status": "error", "message": "Cloudinary no esta configurado para subir videos."}), 400
 
         public_id = clip_public_id(category, title)
+        created_at = datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
         try:
             video_url = upload_binary_to_cloudinary(
                 binary=binary,
@@ -943,6 +1047,13 @@ def api_create_tv_clip():
                 filename=uploaded_file.filename,
                 public_id=public_id,
                 resource_type="video",
+                extra_upload_params={
+                    "context": (
+                        f"title={sanitize_cloudinary_context_value(title)}|"
+                        f"participants={sanitize_cloudinary_context_value(participants)}|"
+                        f"created_at={sanitize_cloudinary_context_value(created_at)}"
+                    ),
+                },
             )
         except Exception as error:
             logger.warning("No se pudo subir clip de TV a Cloudinary: %s", error)
@@ -962,7 +1073,7 @@ def api_create_tv_clip():
         "title": title[:120],
         "participants": participants[:160],
         "video_url": video_url,
-        "created_at": datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+        "created_at": created_at if 'created_at' in locals() else datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
     }
     state["tv_clips"][category].insert(0, new_clip)
     state["tv_clips"][category] = state["tv_clips"][category][:30]
