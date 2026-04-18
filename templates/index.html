@@ -1065,17 +1065,42 @@
             const rPosMap = new Map();
             result.forEach((name, idx) => rPosMap.set(name, idx + 1));
 
-            state.participants.forEach((name) => {
+            const rows = state.participants.map((name) => {
                 const qMeta = qDetails[name] || {};
                 const rMeta = rDetails[name] || {};
+                const qPos = qMeta.position ?? qPosMap.get(name) ?? null;
+                const rPos = rMeta.position ?? rPosMap.get(name) ?? null;
+                return {
+                    name,
+                    qPos,
+                    qTime: qMeta.time || "-",
+                    rPos,
+                    bestTime: rMeta.best_time || "-",
+                    status: rMeta.status || "-",
+                };
+            });
+
+            rows.sort((a, b) => {
+                const aRacePos = a.rPos ?? Number.POSITIVE_INFINITY;
+                const bRacePos = b.rPos ?? Number.POSITIVE_INFINITY;
+                if (aRacePos !== bRacePos) return aRacePos - bRacePos;
+
+                const aQualyPos = a.qPos ?? Number.POSITIVE_INFINITY;
+                const bQualyPos = b.qPos ?? Number.POSITIVE_INFINITY;
+                if (aQualyPos !== bQualyPos) return aQualyPos - bQualyPos;
+
+                return a.name.localeCompare(b.name, "es", { sensitivity: "base" });
+            });
+
+            rows.forEach((row) => {
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
-                    <td>${name}</td>
-                    <td>${qMeta.position ?? qPosMap.get(name) ?? "-"}</td>
-                    <td>${qMeta.time || "-"}</td>
-                    <td>${rMeta.position ?? rPosMap.get(name) ?? "-"}</td>
-                    <td>${rMeta.best_time || "-"}</td>
-                    <td>${rMeta.status || "-"}</td>
+                    <td>${row.name}</td>
+                    <td>${row.qPos ?? "-"}</td>
+                    <td>${row.qTime}</td>
+                    <td>${row.rPos ?? "-"}</td>
+                    <td>${row.bestTime}</td>
+                    <td>${row.status}</td>
                 `;
                 body.appendChild(tr);
             });
