@@ -1,14 +1,18 @@
 """Aplicacion de campeonato estilo Formula 1 para 20 participantes."""
 
+import base64
 import hashlib
 import json
 import logging
 import os
+import re
 import secrets
+import time
 from datetime import date, datetime, timedelta
 from functools import wraps
 from pathlib import Path
 
+import requests
 from flask import Flask, jsonify, render_template, request, session
 from flask_cors import CORS
 
@@ -28,6 +32,16 @@ app.secret_key = os.getenv("SECRET_KEY") or _secret_key_file.read_text().strip()
 ADMIN_USER = os.getenv("ADMIN_USER", "admin")
 _raw_password = os.getenv("ADMIN_PASSWORD", "f1demo2025")
 ADMIN_PASSWORD_HASH = hashlib.sha256(_raw_password.encode()).hexdigest()
+
+CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME", "").strip()
+CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY", "").strip()
+CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET", "").strip()
+COMISARIO_PUBLIC_ID = "facu-demo/comisario"
+
+_CLOUDINARY_CACHE = {
+    "expires_at": 0,
+    "resources": {},
+}
 
 
 def login_required(f):
@@ -131,6 +145,134 @@ TEAM_ALIASES = {
 }
 
 
+def cloudinary_is_configured():
+    return bool(CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET)
+
+
+def slugify_identifier(value):
+    text = (value or "").strip().lower()
+    text = re.sub(r"[^a-z0-9]+", "-", text)
+    return text.strip("-") or "unknown"
+
+
+def player_public_id(player_name):
+    return f"facu-demo/players/{slugify_identifier(player_name)}"
+
+
+def parse_data_image(data_url):
+    match = re.match(r"^data:(image/[a-zA-Z0-9.+-]+);base64,(.+)$", data_url or "", re.DOTALL)
+    if not match:
+        return None, None, None
+
+    mime_type = match.group(1).lower()
+    raw_base64 = match.group(2)
+    try:
+        binary = base64.b64decode(raw_base64, validate=True)
+    except Exception:
+        return None, None, None
+
+    extension_map = {
+        "image/jpeg": "jpg",
+        "image/jpg": "jpg",
+        "image/png": "png",
+        "image/webp": "webp",
+        "image/gif": "gif",
+    }
+    ext = extension_map.get(mime_type, "jpg")
+    return mime_type, ext, binary
+
+
+def sign_cloudinary_params(params):
+    sorted_items = sorted((key, value) for key, value in params.items() if value is not None and value != "")
+    payload = "&".join(f"{key}={value}" for key, value in sorted_items)
+    return hashlib.sha1(f"{payload}{CLOUDINARY_API_SECRET}".encode("utf-8")).hexdigest()
+
+
+def upload_data_image_to_cloudinary(data_url, public_id):
+    mime_type, ext, binary = parse_data_image(data_url)
+    if mime_type is None or binary is None:
+        raise ValueError("La imagen no tiene un formato data URL valido.")
+
+    if not cloudinary_is_configured():
+        raise RuntimeError("Cloudinary no esta configurado.")
+
+    upload_url = f"https://api.cloudinary.com/v1_1/{CLOUDINARY_CLOUD_NAME}/image/upload"
+    timestamp = int(time.time())
+    params_to_sign = {
+        "timestamp": timestamp,
+        "public_id": public_id,
+        "overwrite": "true",
+        "invalidate": "true",
+    }
+    signature = sign_cloudinary_params(params_to_sign)
+
+    payload = {
+        **params_to_sign,
+        "api_key": CLOUDINARY_API_KEY,
+        "signature": signature,
+    }
+    files = {
+        "file": (f"upload.{ext}", binary, mime_type),
+    }
+
+    response = requests.post(upload_url, data=payload, files=files, timeout=45)
+    if response.status_code >= 400:
+        raise RuntimeError(f"Cloudinary error ({response.status_code}): {response.text[:250]}")
+
+    data = response.json()
+    secure_url = data.get("secure_url")
+    if not isinstance(secure_url, str) or not secure_url.strip():
+        raise RuntimeError("Cloudinary no devolvio secure_url.")
+
+    return secure_url.strip()
+
+
+def fetch_cloudinary_resources_map(force=False):
+    if not cloudinary_is_configured():
+        return {}
+
+    now = time.time()
+    if not force and _CLOUDINARY_CACHE["expires_at"] > now:
+        return _CLOUDINARY_CACHE["resources"]
+
+    resources_map = {}
+    endpoint = f"https://api.cloudinary.com/v1_1/{CLOUDINARY_CLOUD_NAME}/resources/image/upload"
+    cursor = None
+
+    while True:
+        params = {
+            "prefix": "facu-demo/",
+            "max_results": 200,
+        }
+        if cursor:
+            params["next_cursor"] = cursor
+
+        response = requests.get(
+            endpoint,
+            params=params,
+            auth=(CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET),
+            timeout=30,
+        )
+        if response.status_code >= 400:
+            logger.warning("No se pudieron listar recursos de Cloudinary: %s", response.text[:250])
+            break
+
+        data = response.json()
+        for item in data.get("resources", []):
+            public_id = item.get("public_id")
+            secure_url = item.get("secure_url")
+            if isinstance(public_id, str) and isinstance(secure_url, str):
+                resources_map[public_id] = secure_url
+
+        cursor = data.get("next_cursor")
+        if not cursor:
+            break
+
+    _CLOUDINARY_CACHE["resources"] = resources_map
+    _CLOUDINARY_CACHE["expires_at"] = now + 120
+    return resources_map
+
+
 def default_participants():
     return []
 
@@ -221,6 +363,7 @@ def load_state():
     state["comisario_image"] = state.get("comisario_image", "") if isinstance(state.get("comisario_image", ""), str) else ""
     state["dates"] = state.get("dates", {})
     state["season_start_date"] = state.get("season_start_date", next_monday().isoformat())
+    cloudinary_resources = fetch_cloudinary_resources_map() if cloudinary_is_configured() else {}
     # Ensure teams are assigned for all participants
     existing_teams = state.get("teams", {})
     existing_images = state.get("player_images", {})
@@ -234,6 +377,10 @@ def load_state():
         image_value = existing_images.get(name)
         if isinstance(image_value, str) and image_value.strip():
             new_images[name] = image_value
+        else:
+            player_image_url = cloudinary_resources.get(player_public_id(name))
+            if isinstance(player_image_url, str) and player_image_url.strip():
+                new_images[name] = player_image_url
     state["teams"] = new_teams
     state["player_images"] = new_images
     existing_bios = state.get("player_bios", {})
@@ -242,6 +389,11 @@ def load_state():
         if isinstance(existing_bios.get(name), dict):
             new_bios[name] = existing_bios[name]
     state["player_bios"] = new_bios
+
+    if (not state["comisario_image"]) and cloudinary_resources:
+        comisario_url = cloudinary_resources.get(COMISARIO_PUBLIC_ID)
+        if isinstance(comisario_url, str) and comisario_url.strip():
+            state["comisario_image"] = comisario_url
     return state
 
 
@@ -578,7 +730,21 @@ def api_update_participants():
         if preferred_image is not None and not isinstance(preferred_image, str):
             return jsonify({"status": "error", "message": f"Imagen invalida para {name}."}), 400
         if isinstance(preferred_image, str) and preferred_image.strip():
-            new_images[name] = preferred_image.strip()
+            preferred_image = preferred_image.strip()
+            if preferred_image.startswith("data:image/"):
+                if cloudinary_is_configured():
+                    try:
+                        uploaded_url = upload_data_image_to_cloudinary(preferred_image, player_public_id(name))
+                        new_images[name] = uploaded_url
+                    except Exception as error:
+                        logger.warning("No se pudo subir imagen de %s a Cloudinary: %s", name, error)
+                        return jsonify({"status": "error", "message": f"No se pudo subir la imagen de {name}."}), 400
+                else:
+                    new_images[name] = preferred_image
+            elif preferred_image.startswith("http://") or preferred_image.startswith("https://"):
+                new_images[name] = preferred_image
+            else:
+                return jsonify({"status": "error", "message": f"Formato de imagen invalido para {name}."}), 400
         elif isinstance(existing_images.get(name), str) and existing_images.get(name).strip():
             new_images[name] = existing_images.get(name).strip()
     state["teams"] = new_teams
@@ -627,11 +793,19 @@ def api_update_comisario_image():
         return jsonify({"status": "error", "message": "image debe ser string."}), 400
 
     image_data = image_data.strip()
-    if image_data and not image_data.startswith("data:image/"):
-        return jsonify({"status": "error", "message": "Formato de imagen invalido."}), 400
-
     if len(image_data) > 3_000_000:
         return jsonify({"status": "error", "message": "La imagen es demasiado grande."}), 400
+
+    if image_data:
+        if image_data.startswith("data:image/"):
+            if cloudinary_is_configured():
+                try:
+                    image_data = upload_data_image_to_cloudinary(image_data, COMISARIO_PUBLIC_ID)
+                except Exception as error:
+                    logger.warning("No se pudo subir imagen del comisario a Cloudinary: %s", error)
+                    return jsonify({"status": "error", "message": "No se pudo subir la imagen del comisario."}), 400
+        elif not (image_data.startswith("http://") or image_data.startswith("https://")):
+            return jsonify({"status": "error", "message": "Formato de imagen invalido."}), 400
 
     state = load_state()
     state["comisario_image"] = image_data

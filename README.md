@@ -113,6 +113,23 @@ Notas:
 - El comando de arranque usa Gunicorn (`gunicorn --bind 0.0.0.0:$PORT app:app`).
 - Si el servicio reinicia, Render volvera a arrancar desde el estado seed versionado si no conserva `data/season.json`.
 
+### Persistir fotos con Cloudinary (recomendado)
+
+Para evitar perder fotos de pilotos/comisario en Render Free, configura Cloudinary:
+
+1. Crea una cuenta gratuita en Cloudinary.
+2. Copia estos 3 valores desde el dashboard de Cloudinary.
+3. En Render -> servicio -> Environment agrega:
+  - `CLOUDINARY_CLOUD_NAME`
+  - `CLOUDINARY_API_KEY`
+  - `CLOUDINARY_API_SECRET`
+4. Guarda variables y redeploya el servicio.
+
+Con esto:
+
+- Las fotos nuevas se suben a Cloudinary.
+- La app recupera fotos desde Cloudinary aunque Render reinicie instancia.
+
 ## Notas
 
 - Si el proxy hace strip del prefijo, la app tambien expone rutas sin prefijo para evitar loops.
