@@ -263,6 +263,16 @@ def upload_binary_to_cloudinary(binary, mime_type, filename, public_id, resource
         "overwrite": "true",
         "invalidate": "true",
     }
+    if isinstance(extra_upload_params, dict):
+        for key, value in extra_upload_params.items():
+            if value is None:
+                continue
+            text_value = str(value).strip()
+            if not text_value:
+                continue
+            # Cloudinary requires additional upload parameters to be part of the signature.
+            params_to_sign[key] = text_value
+
     signature = sign_cloudinary_params(params_to_sign)
 
     payload = {
@@ -270,11 +280,6 @@ def upload_binary_to_cloudinary(binary, mime_type, filename, public_id, resource
         "api_key": CLOUDINARY_API_KEY,
         "signature": signature,
     }
-    if isinstance(extra_upload_params, dict):
-        for key, value in extra_upload_params.items():
-            if value is None:
-                continue
-            payload[key] = value
     files = {
         "file": (filename, binary, mime_type),
     }
