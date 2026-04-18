@@ -162,6 +162,7 @@ def build_default_state():
         "race_details": {},
         "player_images": {},
         "player_bios": {},
+        "comisario_image": "",
         "dates": {},
         "teams": teams_map,
     }
@@ -217,6 +218,7 @@ def load_state():
     state["race_details"] = state.get("race_details", {})
     state["player_images"] = state.get("player_images", {})
     state["player_bios"] = state.get("player_bios", {})
+    state["comisario_image"] = state.get("comisario_image", "") if isinstance(state.get("comisario_image", ""), str) else ""
     state["dates"] = state.get("dates", {})
     state["season_start_date"] = state.get("season_start_date", next_monday().isoformat())
     # Ensure teams are assigned for all participants
@@ -480,6 +482,7 @@ def get_state_payload():
         "teams": state["teams"],
         "player_images": state["player_images"],
         "player_bios": state["player_bios"],
+        "comisario_image": state["comisario_image"],
         "teams_leaderboard": teams_leaderboard,
         "completed_races": completed_races,
         "total_races": len(schedule),
@@ -608,6 +611,32 @@ def api_update_player_profile():
     state["player_bios"][player_name] = profile_data
     save_state(state)
     return jsonify({"status": "success", "message": "Perfil actualizado correctamente."}), 200
+
+
+@app.route("/api/comisario-image", methods=["POST"])
+@app.route(f"{script_name}/api/comisario-image", methods=["POST"])
+@login_required
+def api_update_comisario_image():
+    data = request.get_json(silent=True) or {}
+    image_data = data.get("image")
+
+    if image_data is None:
+        return jsonify({"status": "error", "message": "Falta image en el body."}), 400
+
+    if not isinstance(image_data, str):
+        return jsonify({"status": "error", "message": "image debe ser string."}), 400
+
+    image_data = image_data.strip()
+    if image_data and not image_data.startswith("data:image/"):
+        return jsonify({"status": "error", "message": "Formato de imagen invalido."}), 400
+
+    if len(image_data) > 3_000_000:
+        return jsonify({"status": "error", "message": "La imagen es demasiado grande."}), 400
+
+    state = load_state()
+    state["comisario_image"] = image_data
+    save_state(state)
+    return jsonify({"status": "success", "message": "Foto del comisario guardada correctamente."}), 200
 
 
 @app.route("/api/results", methods=["POST"])

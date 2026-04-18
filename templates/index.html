@@ -1358,6 +1358,7 @@
             dates: {},
             playerImages: {},
             playerBios: {},
+            comisarioImage: "",
         };
 
         function showStatus(message, type) {
@@ -1367,6 +1368,18 @@
             setTimeout(() => {
                 statusBox.className = "status";
             }, 3800);
+        }
+
+        function setComisarioImagePreview(imageUrl) {
+            const img = document.getElementById("comisarioImage");
+            if (!img) return;
+
+            if (typeof imageUrl === "string" && imageUrl.trim()) {
+                img.src = imageUrl;
+                return;
+            }
+
+            img.src = "/static/images/comisario.jpg";
         }
 
         function initialsFromName(name) {
@@ -1876,6 +1889,40 @@
                 reader.onerror = () => reject(new Error("No se pudo leer la imagen"));
                 reader.readAsDataURL(file);
             });
+        }
+
+        async function saveComisarioImage(imageDataUrl) {
+            const res = await fetch(`${API_BASE}/comisario-image`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ image: imageDataUrl }),
+            });
+
+            const data = await res.json();
+            if (res.status === 401 || data.auth_required) {
+                openLoginModal();
+                throw new Error("Necesitas iniciar sesion para cambiar la foto del comisario.");
+            }
+            if (!res.ok) {
+                throw new Error(data.message || "No se pudo guardar la foto del comisario.");
+            }
+
+            return data;
+        }
+
+        async function handleComisarioImageUpload(file) {
+            if (!file) return;
+            if (!isAuthenticated) {
+                openLoginModal();
+                throw new Error("Necesitas iniciar sesion para cambiar la foto del comisario.");
+            }
+
+            const dataUrl = await compressImageToDataUrl(file);
+            setComisarioImagePreview(dataUrl);
+            await saveComisarioImage(dataUrl);
+            state.comisarioImage = dataUrl;
+            showStatus("Foto del comisario guardada.", "success");
         }
 
         function getParticipantRows() {
@@ -2453,6 +2500,7 @@
             state.teams_leaderboard = data.teams_leaderboard || [];
             state.playerImages = data.player_images || {};
             state.playerBios = data.player_bios || {};
+            state.comisarioImage = data.comisario_image || "";
 
             document.getElementById("seasonStartDate").value = data.season_start_date;
             const rows = state.participants.length > 0
@@ -2474,6 +2522,7 @@
             renderPodium();
             renderDriversGrid();
             renderTimeline();
+            setComisarioImagePreview(state.comisarioImage);
             renderHeaderMeta();
             if (state.schedule.length > 0) {
                 const selected = Number(document.getElementById("raceSelect").value);
@@ -2645,24 +2694,9 @@
         
         safeAddListener("comisarioImageUpload", "change", (e) => safeRun(async () => {
             const file = e.target.files?.[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const img = document.getElementById("comisarioImage");
-                img.src = event.target.result;
-                // Guardar en localStorage
-                localStorage.setItem("comisarioImage", event.target.result);
-                showStatus("Foto del comisario guardada.", "success");
-            };
-            reader.readAsDataURL(file);
+            await handleComisarioImageUpload(file);
             e.target.value = "";
         }));
-        
-        // Cargar comisario del localStorage si existe
-        const savedComisario = localStorage.getItem("comisarioImage");
-        if (savedComisario) {
-            document.getElementById("comisarioImage").src = savedComisario;
-        }
         
         const raceDetailModal = document.getElementById("raceDetailModal");
         if (raceDetailModal) {
