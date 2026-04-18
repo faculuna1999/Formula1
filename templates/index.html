@@ -391,34 +391,59 @@
         .timeline-item.next { border-color: rgba(255, 59, 31, 0.58); }
 
         .tv-modal {
-            max-width: 1100px;
+            max-width: 980px;
+            width: min(92vw, 980px);
             border-color: rgba(57, 215, 255, 0.5);
+            background:
+                radial-gradient(circle at 12% -8%, rgba(57, 215, 255, 0.12), transparent 42%),
+                radial-gradient(circle at 96% 0%, rgba(255, 59, 31, 0.1), transparent 36%),
+                #0d1322;
         }
 
-        .tv-modal .table-wrap {
-            max-height: 70vh;
-            margin-top: 10px;
+        .tv-head {
+            border: 1px solid rgba(57, 215, 255, 0.26);
+            border-radius: 12px;
+            background: rgba(13, 20, 34, 0.76);
+            padding: 12px;
+            margin-top: 8px;
+            display: grid;
+            gap: 6px;
+        }
+
+        .tv-head-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .tv-badge {
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(57, 215, 255, 0.32);
+            background: rgba(57, 215, 255, 0.08);
+            color: #dbf6ff;
+            font-size: 0.8rem;
         }
 
         .tv-layout {
             display: grid;
-            grid-template-columns: 1.2fr 1fr;
-            gap: 14px;
+            grid-template-columns: 1.45fr 0.95fr;
+            gap: 16px;
             margin-top: 12px;
         }
 
         .tv-panel {
             border: 1px solid rgba(118, 149, 217, 0.32);
             border-radius: 12px;
-            background: rgba(16, 22, 37, 0.62);
-            padding: 12px;
+            background: linear-gradient(160deg, rgba(16, 22, 37, 0.78), rgba(11, 16, 28, 0.9));
+            padding: 14px;
         }
 
         .tv-clips-grid {
             display: grid;
             grid-template-columns: 1fr;
-            gap: 10px;
-            max-height: 50vh;
+            gap: 12px;
+            max-height: 58vh;
             overflow: auto;
             padding-right: 4px;
         }
@@ -435,7 +460,7 @@
         .tv-category-title {
             margin: 0;
             font-family: "Orbitron", "Rajdhani", sans-serif;
-            font-size: 0.92rem;
+            font-size: 1rem;
             letter-spacing: 0.4px;
             color: #e5f5ff;
         }
@@ -458,7 +483,7 @@
 
         .tv-video-title {
             font-weight: 700;
-            font-size: 0.94rem;
+            font-size: 0.96rem;
         }
 
         .tv-video-meta {
@@ -468,7 +493,7 @@
 
         .tv-upload-form {
             display: grid;
-            gap: 8px;
+            gap: 9px;
             margin-top: 8px;
         }
 
@@ -488,7 +513,7 @@
             font-size: 0.84rem;
             border: 1px dashed rgba(118, 149, 217, 0.35);
             border-radius: 8px;
-            padding: 8px;
+            padding: 10px;
             text-align: center;
         }
 
@@ -1060,6 +1085,12 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        @media (max-width: 900px) {
+            .tv-layout {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1352,19 +1383,12 @@
             <h2 id="tvModeTitle">Modo TV</h2>
             <p class="small-muted" id="tvModeSubtitle">Resumen de temporada</p>
 
-            <div class="table-wrap tv-panel">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Piloto</th>
-                            <th>Puntos</th>
-                            <th>Victorias</th>
-                            <th>Podios</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tvModeBody"></tbody>
-                </table>
+            <div class="tv-head">
+                <div class="tv-head-meta">
+                    <span class="tv-badge" id="tvModeCounter">0 clips</span>
+                    <span class="tv-badge">Categorias: Epic fails y Mejores adelantamientos</span>
+                </div>
+                <p class="small-muted" style="margin:0;">Subi y reproducí clips desde esta pantalla, sin mostrar la tabla de participantes.</p>
             </div>
 
             <div class="tv-layout">
@@ -1826,20 +1850,6 @@
         }
 
         function renderTvMode() {
-            const body = document.getElementById("tvModeBody");
-            if (!body) return;
-            body.innerHTML = "";
-            (state.leaderboard || []).forEach((row) => {
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td>${row.rank}</td>
-                    <td>${row.name}</td>
-                    <td><strong>${row.points}</strong></td>
-                    <td>${row.wins}</td>
-                    <td>${row.podiums}</td>
-                `;
-                body.appendChild(tr);
-            });
             const titleEl = document.getElementById("tvModeTitle");
             if (titleEl) titleEl.textContent = "Modo TV - Liga autitos chocadores";
             const nextRaceLabel = state.nextRace
@@ -1855,11 +1865,20 @@
         function renderTvClips() {
             const grid = document.getElementById("tvClipsGrid");
             if (!grid) return;
+            const counterEl = document.getElementById("tvModeCounter");
 
             const categories = [
                 { key: "epic_fails", label: "Epic fails" },
                 { key: "mejores_adelantamientos", label: "Mejores adelantamientos" },
             ];
+
+            const totalClips = categories.reduce((acc, category) => {
+                const clips = Array.isArray(state.tvClips?.[category.key]) ? state.tvClips[category.key] : [];
+                return acc + clips.length;
+            }, 0);
+            if (counterEl) {
+                counterEl.textContent = `${totalClips} clip${totalClips === 1 ? "" : "s"}`;
+            }
 
             grid.innerHTML = "";
             categories.forEach((category) => {
