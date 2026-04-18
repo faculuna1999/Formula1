@@ -121,8 +121,12 @@ TEAMS = [
     "Haas",
     "Williams",
     "Racing Bulls",
-    "Audi",
+    "Kick Sauber",
 ]
+
+TEAM_ALIASES = {
+    "Audi": "Kick Sauber",
+}
 
 
 def default_participants():
@@ -152,6 +156,8 @@ def build_default_state():
         "tracks": TRACKS,
         "results": {},
         "qualifying": {},
+        "qualifying_details": {},
+        "race_details": {},
         "dates": {},
         "teams": teams_map,
     }
@@ -192,13 +198,18 @@ def load_state():
     state["tracks"] = state.get("tracks", TRACKS)
     state["results"] = state.get("results", {})
     state["qualifying"] = state.get("qualifying", {})
+    state["qualifying_details"] = state.get("qualifying_details", {})
+    state["race_details"] = state.get("race_details", {})
     state["dates"] = state.get("dates", {})
     state["season_start_date"] = state.get("season_start_date", next_monday().isoformat())
     # Ensure teams are assigned for all participants
     existing_teams = state.get("teams", {})
     new_teams = {}
     for idx, name in enumerate(state["participants"]):
-        new_teams[name] = existing_teams.get(name, TEAMS[idx % len(TEAMS)])
+        normalized_team = canonical_team_name(existing_teams.get(name))
+        if normalized_team not in TEAMS:
+            normalized_team = TEAMS[idx % len(TEAMS)]
+        new_teams[name] = normalized_team
     state["teams"] = new_teams
     return state
 
@@ -220,6 +231,13 @@ def parse_iso_date(raw):
         return datetime.strptime(raw, "%Y-%m-%d").date()
     except (TypeError, ValueError):
         return None
+
+
+def canonical_team_name(raw_team):
+    if not isinstance(raw_team, str):
+        return None
+    cleaned = raw_team.strip()
+    return TEAM_ALIASES.get(cleaned, cleaned)
 
 
 def build_schedule(state):
@@ -342,7 +360,7 @@ def compute_teams_leaderboard(state, driver_leaderboard):
     # Aggregate driver stats by team
     for driver in driver_leaderboard:
         driver_name = driver["name"]
-        team_name = state["teams"].get(driver_name, "Unknown")
+        team_name = canonical_team_name(state["teams"].get(driver_name, "Unknown"))
         
         if team_name in teams_stats:
             teams_stats[team_name]["points"] += driver["points"]
@@ -385,6 +403,8 @@ def get_state_payload():
         "schedule": schedule,
         "results": state["results"],
         "qualifying": state["qualifying"],
+        "qualifying_details": state["qualifying_details"],
+        "race_details": state["race_details"],
         "dates": state["dates"],
         "leaderboard": leaderboard,
         "teams": state["teams"],
@@ -465,10 +485,13 @@ def api_update_participants():
     state["participants"] = participants
     new_teams = {}
     for idx, name in enumerate(participants):
-        preferred_team = (provided_teams or {}).get(name)
+        preferred_team = canonical_team_name((provided_teams or {}).get(name))
         if preferred_team is not None and preferred_team not in TEAMS:
             return jsonify({"status": "error", "message": f"Equipo desconocido: {preferred_team}"}), 400
-        new_teams[name] = preferred_team or existing_teams.get(name, TEAMS[idx % len(TEAMS)])
+        current_team = canonical_team_name(existing_teams.get(name))
+        if current_team not in TEAMS:
+            current_team = TEAMS[idx % len(TEAMS)]
+        new_teams[name] = preferred_team or current_team
     state["teams"] = new_teams
     if season_start_date is not None:
         state["season_start_date"] = season_start_date.isoformat()
@@ -500,19 +523,42 @@ def api_set_result():
 
     # Clasificacion (qualy) — opcional
     qualifying = data.get("qualifying")
+    qualifying_details = data.get("qualifying_details")
+    if qualifying_details is not None:
+        if not isinstance(qualifying_details, dict):
+            return jsonify({"status": "error", "message": "qualifying_details debe ser un objeto."}), 400
+        for driver_name in qualifying_details.keys():
+            if driver_name not in state["participants"]:
+                return jsonify({"status": "error", "message": f"Piloto no registrado en qualy: {driver_name}"}), 400
     if qualifying is not None:
         q_err = validate_classification(qualifying, state["participants"])
         if q_err:
             return jsonify({"status": "error", "message": f"Clasificacion (qualy): {q_err}"}), 400
         state["qualifying"][str(race_index)] = qualifying
+    if qualifying_details is not None:
+        state["qualifying_details"][str(race_index)] = qualifying_details
 
     # Resultado de carrera — opcional
     classification = data.get("classification")
+    race_details = data.get("race_details")
+    if race_details is not None:
+        if not isinstance(race_details, dict):
+            return jsonify({"status": "error", "message": "race_details debe ser un objeto."}), 400
+        for driver_name, detail in race_details.items():
+            if driver_name not in state["participants"]:
+                return jsonify({"status": "error", "message": f"Piloto no registrado en carrera: {driver_name}"}), 400
+            if not isinstance(detail, dict):
+                return jsonify({"status": "error", "message": "Cada detalle de carrera debe ser un objeto."}), 400
+            status = (detail.get("status") or "").strip().upper()
+            if status and status not in {"DNF", "DNS"}:
+                return jsonify({"status": "error", "message": f"Estado invalido para {driver_name}: {status}"}), 400
     if classification is not None:
         r_err = validate_classification(classification, state["participants"])
         if r_err:
             return jsonify({"status": "error", "message": f"Resultado de carrera: {r_err}"}), 400
         state["results"][str(race_index)] = classification
+    if race_details is not None:
+        state["race_details"][str(race_index)] = race_details
 
     save_state(state)
     return jsonify({"status": "success", "message": "Datos guardados correctamente."}), 200
@@ -525,6 +571,8 @@ def api_reset_results():
     state = load_state()
     state["results"] = {}
     state["qualifying"] = {}
+    state["qualifying_details"] = {}
+    state["race_details"] = {}
     state["dates"] = {}
     save_state(state)
     return jsonify({"status": "success", "message": "Se reiniciaron los resultados del campeonato."}), 200
@@ -548,9 +596,10 @@ def api_update_teams():
         if participant not in teams_map:
             return jsonify({"status": "error", "message": f"Falta asignar equipo a {participant}."}), 400
         
-        assigned_team = teams_map[participant]
+        assigned_team = canonical_team_name(teams_map[participant])
         if assigned_team not in TEAMS:
             return jsonify({"status": "error", "message": f"Equipo desconocido: {assigned_team}"}), 400
+        teams_map[participant] = assigned_team
     
     state["teams"] = teams_map
     save_state(state)

@@ -5,21 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Facu Demo - Campeonato Formula 1</title>
     <style>
+        @import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Rajdhani:wght@400;500;600;700&display=swap");
+
         :root {
-            --bg-a: #0b0b0e;
-            --bg-b: #15151b;
-            --ink: #f3f4f6;
-            --muted: #9ca3af;
-            --surface: #111318;
-            --surface-alt: #171a22;
-            --accent: #e10600;
-            --accent-dark: #b30500;
-            --ok: #86efac;
-            --ok-bg: #052e16;
-            --err: #fecaca;
-            --err-bg: #450a0a;
-            --line: #2b2f3a;
-            --shadow: 0 20px 54px rgba(0, 0, 0, 0.45);
+            --bg-a: #05070d;
+            --bg-b: #121826;
+            --ink: #f4f6ff;
+            --muted: #9ba7c2;
+            --surface: rgba(11, 16, 28, 0.82);
+            --surface-alt: rgba(27, 36, 60, 0.9);
+            --accent: #ff3b1f;
+            --accent-dark: #c62711;
+            --accent-cyan: #39d7ff;
+            --ok: #89f7b1;
+            --ok-bg: #0c3d27;
+            --err: #ffcbcb;
+            --err-bg: #4d1010;
+            --line: rgba(108, 140, 210, 0.36);
+            --shadow: 0 18px 60px rgba(0, 0, 0, 0.5);
         }
 
         * {
@@ -29,14 +32,27 @@
         }
 
         body {
-            font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+            font-family: "Rajdhani", "Trebuchet MS", sans-serif;
             color: var(--ink);
             min-height: 100vh;
             background:
-                radial-gradient(circle at 12% 15%, rgba(225, 6, 0, 0.2), transparent 30%),
-                radial-gradient(circle at 86% 8%, rgba(225, 6, 0, 0.14), transparent 28%),
-                linear-gradient(160deg, var(--bg-a), var(--bg-b));
+                radial-gradient(circle at 15% 12%, rgba(255, 59, 31, 0.24), transparent 28%),
+                radial-gradient(circle at 85% 10%, rgba(57, 215, 255, 0.16), transparent 28%),
+                linear-gradient(155deg, var(--bg-a), var(--bg-b));
             padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.018) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.018) 50%, rgba(255, 255, 255, 0.018) 75%, transparent 75%, transparent);
+            background-size: 40px 40px;
+            opacity: 0.32;
+            z-index: -1;
         }
 
         .page {
@@ -47,36 +63,50 @@
         }
 
         .hero {
-            background: linear-gradient(120deg, #09090b, #161b22);
+            background: linear-gradient(120deg, rgba(9, 13, 24, 0.96), rgba(25, 31, 48, 0.94));
             color: #f9fafb;
             border-radius: 22px;
             padding: 24px;
             box-shadow: var(--shadow);
             overflow: hidden;
             position: relative;
-            border: 1px solid #272b35;
+            border: 1px solid rgba(138, 168, 240, 0.34);
+            animation: rise-in 0.55s ease-out;
         }
 
         .hero::after {
             content: "";
             position: absolute;
-            top: -40px;
-            right: -30px;
-            width: 180px;
-            height: 180px;
-            background: radial-gradient(circle, rgba(225, 6, 0, 0.58), transparent 65%);
-            transform: rotate(12deg);
+            top: -85px;
+            right: -25px;
+            width: 220px;
+            height: 220px;
+            background: radial-gradient(circle, rgba(255, 59, 31, 0.56), transparent 64%);
+            transform: rotate(9deg);
+        }
+
+        .hero::before {
+            content: "";
+            position: absolute;
+            left: 30%;
+            bottom: -70px;
+            width: 300px;
+            height: 170px;
+            background: radial-gradient(circle, rgba(57, 215, 255, 0.26), transparent 72%);
         }
 
         .hero h1 {
+            font-family: "Orbitron", "Rajdhani", sans-serif;
             font-size: clamp(1.5rem, 2.5vw, 2.2rem);
             margin-bottom: 8px;
-            letter-spacing: 0.4px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
         }
 
         .hero p {
-            color: #d1d5db;
+            color: #cdd7ee;
             max-width: 800px;
+            font-size: 1.04rem;
         }
 
         .hero-meta {
@@ -89,7 +119,8 @@
         .pill {
             padding: 8px 12px;
             border-radius: 999px;
-            background: rgba(255, 255, 255, 0.12);
+            background: rgba(75, 98, 149, 0.28);
+            border: 1px solid rgba(154, 183, 255, 0.24);
             font-size: 0.9rem;
         }
 
@@ -105,6 +136,8 @@
             border-radius: 18px;
             padding: 16px;
             box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+            animation: rise-in 0.45s ease-out;
         }
 
         .card h2 {
@@ -112,8 +145,11 @@
         }
 
         .card h2 {
+            font-family: "Orbitron", "Rajdhani", sans-serif;
             font-size: 1.1rem;
             margin-bottom: 10px;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
         }
 
         .card p.caption {
@@ -153,6 +189,21 @@
         .modal input:focus { outline: 2px solid var(--accent); border-color: transparent; }
         .modal .modal-error { color: #fca5a5; font-size: 0.88rem; margin-top: 10px; min-height: 1.2em; }
         .modal .btn-bar { display: flex; gap: 10px; margin-top: 20px; }
+
+        .race-detail-modal {
+            max-width: 980px;
+            border-color: #353b48;
+        }
+
+        .race-detail-modal .table-wrap {
+            max-height: 60vh;
+            margin-top: 10px;
+        }
+
+        .race-detail-modal th,
+        .race-detail-modal td {
+            font-size: 0.88rem;
+        }
         /* ---- Auth badge ---- */
         .auth-badge {
             display: flex; align-items: center; gap: 8px;
@@ -179,7 +230,8 @@
 
         .leaderboard-card,
         .constructors-card,
-        .calendar-card {
+        .calendar-card,
+        .race-detail-card {
             grid-column: span 6;
         }
 
@@ -201,8 +253,8 @@
             width: 100%;
             padding: 10px;
             border-radius: 10px;
-            border: 1px solid #353b48;
-            background: #0f1117;
+            border: 1px solid rgba(116, 146, 214, 0.48);
+            background: rgba(11, 16, 28, 0.82);
             color: #f3f4f6;
         }
 
@@ -210,8 +262,8 @@
             width: 100%;
             padding: 10px;
             border-radius: 10px;
-            border: 1px solid #353b48;
-            background: #0f1117;
+            border: 1px solid rgba(116, 146, 214, 0.48);
+            background: rgba(11, 16, 28, 0.82);
             color: #f3f4f6;
         }
 
@@ -235,11 +287,20 @@
         select,
         textarea {
             width: 100%;
-            border: 1px solid #353b48;
+            border: 1px solid rgba(116, 146, 214, 0.48);
             border-radius: 10px;
             padding: 10px;
-            background: #0f1117;
+            background: rgba(11, 16, 28, 0.82);
             color: #f3f4f6;
+        }
+
+        input[type="date"]:focus,
+        select:focus,
+        textarea:focus,
+        .participants-grid input:focus,
+        .participants-grid select:focus {
+            outline: 2px solid rgba(57, 215, 255, 0.65);
+            outline-offset: 1px;
         }
 
         textarea {
@@ -264,7 +325,7 @@
         }
 
         .primary {
-            background: var(--accent);
+            background: linear-gradient(135deg, var(--accent), #ff7348);
             color: white;
         }
 
@@ -273,7 +334,7 @@
         }
 
         .secondary {
-            background: #242934;
+            background: linear-gradient(135deg, #1f2c45, #263758);
             color: #e5e7eb;
         }
 
@@ -319,12 +380,16 @@
             background: var(--surface-alt);
             position: sticky;
             top: 0;
+            font-family: "Orbitron", "Rajdhani", sans-serif;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+            font-size: 0.78rem;
         }
 
         .table-wrap {
             max-height: 400px;
             overflow: auto;
-            border: 1px solid #252a34;
+            border: 1px solid rgba(118, 149, 217, 0.32);
             border-radius: 10px;
         }
 
@@ -333,11 +398,24 @@
             font-size: 0.86rem;
         }
 
+        @keyframes rise-in {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         @media (max-width: 1024px) {
             .participants-card,
             .result-card,
             .leaderboard-card,
-            .calendar-card {
+            .constructors-card,
+            .calendar-card,
+            .race-detail-card {
                 grid-column: span 12;
             }
         }
@@ -349,6 +427,10 @@
 
             .hero {
                 padding: 18px;
+            }
+
+            .hero h1 {
+                font-size: 1.4rem;
             }
         }
     </style>
@@ -493,6 +575,23 @@
                     </table>
                 </div>
             </article>
+
+            <article class="card race-detail-card">
+                <h2>5) Detalle de carrera</h2>
+                <p class="caption" id="raceDetailCaption">Toca una carrera del calendario para ver pole y resultado final.</p>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Participante</th>
+                                <th>Pole</th>
+                                <th>Final</th>
+                            </tr>
+                        </thead>
+                        <tbody id="raceDetailBody"></tbody>
+                    </table>
+                </div>
+            </article>
         </section>
 
         <div id="statusBox" class="status"></div>
@@ -514,6 +613,31 @@
         </div>
     </div>
 
+    <div class="modal-backdrop" id="raceDetailModal">
+        <div class="modal race-detail-modal">
+            <h2 id="raceDetailTitle">Detalle de carrera</h2>
+            <p class="small-muted" id="raceDetailSubtitle">Selecciona una carrera desde el calendario.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Jugador</th>
+                            <th>Pos Qualy</th>
+                            <th>Tiempo Qualy</th>
+                            <th>Pos Final</th>
+                            <th>Mejor Tiempo Carrera</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="raceDetailModalBody"></tbody>
+                </table>
+            </div>
+            <div class="btn-bar">
+                <button class="secondary" id="closeRaceDetailBtn" type="button">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/tesseract.js@5/dist/tesseract.min.js"></script>
     <script>
         const API_BASE = "{{ prefix }}/api";
@@ -527,7 +651,7 @@
             "Haas",
             "Williams",
             "Racing Bulls",
-            "Audi",
+            "Kick Sauber",
         ];
         let isAuthenticated = false;
 
@@ -538,13 +662,19 @@
             if (isAuthenticated) {
                 badge.textContent = "✅ Sesion activa — Cerrar sesion";
                 badge.className = "auth-badge logged-in";
-                writeSections.forEach(el => el.style.opacity = "1");
-                writeSections.forEach(el => el.style.pointerEvents = "auto");
+                writeSections.forEach((el) => {
+                    el.style.display = "block";
+                    el.style.opacity = "1";
+                    el.style.pointerEvents = "auto";
+                });
             } else {
                 badge.textContent = "🔒 Iniciar sesion";
                 badge.className = "auth-badge logged-out";
-                writeSections.forEach(el => el.style.opacity = "0.35");
-                writeSections.forEach(el => el.style.pointerEvents = "none");
+                writeSections.forEach((el) => {
+                    el.style.display = "none";
+                    el.style.opacity = "0.35";
+                    el.style.pointerEvents = "none";
+                });
             }
         }
 
@@ -622,6 +752,8 @@
             nextRace: null,
             results: {},
             qualifying: {},
+            qualifyingDetails: {},
+            raceDetails: {},
             dates: {},
         };
 
@@ -743,7 +875,10 @@
                     <td style="color:${race.has_qualifying ? "#86efac" : "#6b7280"}">${race.has_qualifying ? "✔" : "—"}</td>
                     <td style="color:${race.has_result ? "#86efac" : "#6b7280"}">${race.has_result ? "✔" : "—"}</td>
                 `;
-                tr.addEventListener("click", () => selectRace(race.race_index));
+                tr.addEventListener("click", () => {
+                    selectRace(race.race_index);
+                    openRaceDetailModal(race.race_index);
+                });
                 body.appendChild(tr);
             });
         }
@@ -783,12 +918,150 @@
             }
         }
 
+        function renderRaceDetails(raceIndex) {
+            const race = state.schedule.find((item) => item.race_index === raceIndex);
+            const caption = document.getElementById("raceDetailCaption");
+            const body = document.getElementById("raceDetailBody");
+            body.innerHTML = "";
+
+            if (!race) {
+                caption.textContent = "Toca una carrera del calendario para ver pole y resultado final.";
+                return;
+            }
+
+            caption.textContent = `R${race.round} - ${race.track} (${race.date})`;
+            const qualifying = state.qualifying[String(raceIndex)] || [];
+            const result = state.results[String(raceIndex)] || [];
+            const participants = state.participants || [];
+
+            const poleMap = new Map();
+            qualifying.forEach((name, idx) => poleMap.set(name, idx + 1));
+            const raceMap = new Map();
+            result.forEach((name, idx) => raceMap.set(name, idx + 1));
+
+            participants.forEach((name) => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${name}</td>
+                    <td>${poleMap.get(name) ?? "-"}</td>
+                    <td>${raceMap.get(name) ?? "-"}</td>
+                `;
+                body.appendChild(tr);
+            });
+
+            if (!participants.length) {
+                const tr = document.createElement("tr");
+                tr.innerHTML = '<td colspan="3" style="text-align:center;color:var(--muted)">No hay participantes cargados.</td>';
+                body.appendChild(tr);
+            }
+        }
+
         function parseClassificationText(raw) {
             return raw
                 .split("\n")
                 .map((line) => line.trim())
                 .filter((line) => line.length > 0)
                 .map((line) => line.replace(/^\d+\)\s*/, ""));
+        }
+
+        function parseRaceLine(line) {
+            const cleanLine = line.replace(/^\d+\)\s*/, "").trim();
+            const parts = cleanLine.split("|").map((item) => item.trim()).filter(Boolean);
+            const name = parts[0] || cleanLine;
+            const detailText = parts.slice(1).join(" ");
+            const timeMatch = detailText.match(/\b\d{1,2}:\d{2}\.\d{3}\b/);
+            const statusMatch = detailText.match(/\b(DNF|DNS)\b/i);
+            return {
+                name,
+                time: timeMatch ? timeMatch[0] : "",
+                status: statusMatch ? statusMatch[1].toUpperCase() : "",
+            };
+        }
+
+        function parseDetailedClassification(raw, kind) {
+            const lines = raw
+                .split("\n")
+                .map((line) => line.trim())
+                .filter((line) => line.length > 0);
+
+            const orderedNames = [];
+            const details = {};
+
+            lines.forEach((line, idx) => {
+                const parsed = parseRaceLine(line);
+                if (!parsed.name) return;
+
+                orderedNames.push(parsed.name);
+                if (kind === "qualifying") {
+                    details[parsed.name] = {
+                        position: idx + 1,
+                        time: parsed.time,
+                    };
+                } else {
+                    details[parsed.name] = {
+                        position: idx + 1,
+                        best_time: parsed.time,
+                        status: parsed.status,
+                    };
+                }
+            });
+
+            return { orderedNames, details };
+        }
+
+        function formatQualifyingLine(name, index, detail) {
+            const time = detail?.time || "";
+            return `${index + 1}) ${name}${time ? ` | ${time}` : ""}`;
+        }
+
+        function formatRaceLine(name, index, detail) {
+            const bestTime = detail?.best_time || "";
+            const status = detail?.status || "";
+            let line = `${index + 1}) ${name}`;
+            if (bestTime) line += ` | ${bestTime}`;
+            if (status) line += ` | ${status}`;
+            return line;
+        }
+
+        function openRaceDetailModal(raceIndex) {
+            const race = state.schedule.find((item) => item.race_index === raceIndex);
+            if (!race) return;
+
+            document.getElementById("raceDetailTitle").textContent = `R${race.round} - ${race.track}`;
+            document.getElementById("raceDetailSubtitle").textContent = `Fecha: ${race.date}`;
+
+            const qualifying = state.qualifying[String(raceIndex)] || [];
+            const result = state.results[String(raceIndex)] || [];
+            const qDetails = state.qualifyingDetails[String(raceIndex)] || {};
+            const rDetails = state.raceDetails[String(raceIndex)] || {};
+            const body = document.getElementById("raceDetailModalBody");
+            body.innerHTML = "";
+
+            const qPosMap = new Map();
+            qualifying.forEach((name, idx) => qPosMap.set(name, idx + 1));
+            const rPosMap = new Map();
+            result.forEach((name, idx) => rPosMap.set(name, idx + 1));
+
+            state.participants.forEach((name) => {
+                const qMeta = qDetails[name] || {};
+                const rMeta = rDetails[name] || {};
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${name}</td>
+                    <td>${qMeta.position ?? qPosMap.get(name) ?? "-"}</td>
+                    <td>${qMeta.time || "-"}</td>
+                    <td>${rMeta.position ?? rPosMap.get(name) ?? "-"}</td>
+                    <td>${rMeta.best_time || "-"}</td>
+                    <td>${rMeta.status || "-"}</td>
+                `;
+                body.appendChild(tr);
+            });
+
+            document.getElementById("raceDetailModal").classList.add("open");
+        }
+
+        function closeRaceDetailModal() {
+            document.getElementById("raceDetailModal").classList.remove("open");
         }
 
         function normalizeForMatch(text) {
@@ -910,7 +1183,7 @@
             lines.forEach((line) => {
                 const cleanedLine = line
                     .replace(/[|]/g, " ")
-                    .replace(/\b(red bull|williams|alpine|mclaren|haas|mercedes|aston martin|ferrari|racing bulls|audi)\b/gi, " ")
+                    .replace(/\b(red bull|williams|alpine|mclaren|haas|mercedes|aston martin|ferrari|racing bulls|kick sauber|sauber|audi)\b/gi, " ")
                     .replace(/\b(dnf|vuelta|vueltas|mejor tiempo|tiempo|salida|paradas)\b/gi, " ")
                     .replace(/\d+:\d{2}\.\d{3}/g, " ")
                     .replace(/[+][-\w:.]+/g, " ")
@@ -984,6 +1257,8 @@
             state.nextRace = data.next_race;
             state.results = data.results || {};
             state.qualifying = data.qualifying || {};
+            state.qualifyingDetails = data.qualifying_details || {};
+            state.raceDetails = data.race_details || {};
             state.dates = data.dates || {};
             state.teams = data.teams || {};
             state.teams_leaderboard = data.teams_leaderboard || [];
@@ -1004,6 +1279,15 @@
             renderConstructorsLeaderboard();
             renderSchedule(state.schedule);
             renderHeaderMeta();
+            if (state.schedule.length > 0) {
+                const selected = Number(document.getElementById("raceSelect").value);
+                const selectedRaceIndex = Number.isFinite(selected)
+                    ? selected
+                    : state.schedule[0].race_index;
+                renderRaceDetails(selectedRaceIndex);
+            } else {
+                renderRaceDetails(-1);
+            }
             updateAuthUI();
         }
 
@@ -1014,16 +1298,22 @@
             if (race) document.getElementById("raceDateInput").value = race.date;
 
             const qData = state.qualifying[String(raceIndex)];
+            const qDetails = state.qualifyingDetails[String(raceIndex)] || {};
             document.getElementById("qualifyingInput").value = qData
-                ? qData.map((name, i) => `${i + 1}) ${name}`).join("\n")
+                ? qData.map((name, i) => formatQualifyingLine(name, i, qDetails[name])).join("\n")
                 : "";
 
             const rData = state.results[String(raceIndex)];
+            const rDetails = state.raceDetails[String(raceIndex)] || {};
             document.getElementById("classificationInput").value = rData
-                ? rData.map((name, i) => `${i + 1}) ${name}`).join("\n")
+                ? rData.map((name, i) => formatRaceLine(name, i, rDetails[name])).join("\n")
                 : "";
 
-            document.getElementById("saveResultBtn").scrollIntoView({ behavior: "smooth", block: "center" });
+            renderRaceDetails(raceIndex);
+
+            if (isAuthenticated) {
+                document.getElementById("saveResultBtn").scrollIntoView({ behavior: "smooth", block: "center" });
+            }
         }
 
         async function saveParticipants() {
@@ -1061,8 +1351,16 @@
 
             const payload = { race_index: raceIndex };
             if (dateValue) payload.date = dateValue;
-            if (qualifyingText) payload.qualifying = parseClassificationText(qualifyingText);
-            if (classificationText) payload.classification = parseClassificationText(classificationText);
+            if (qualifyingText) {
+                const parsedQualifying = parseDetailedClassification(qualifyingText, "qualifying");
+                payload.qualifying = parsedQualifying.orderedNames;
+                payload.qualifying_details = parsedQualifying.details;
+            }
+            if (classificationText) {
+                const parsedRace = parseDetailedClassification(classificationText, "race");
+                payload.classification = parsedRace.orderedNames;
+                payload.race_details = parsedRace.details;
+            }
 
             if (!dateValue && !qualifyingText && !classificationText) {
                 showStatus("Completá al menos un campo antes de guardar.", "error");
@@ -1134,6 +1432,10 @@
             await applyOcrToTextarea(e.target.files?.[0], "classificationInput", "carrera");
             e.target.value = "";
         }));
+        document.getElementById("closeRaceDetailBtn").addEventListener("click", closeRaceDetailModal);
+        document.getElementById("raceDetailModal").addEventListener("click", (e) => {
+            if (e.target === e.currentTarget) closeRaceDetailModal();
+        });
 
         // Al cambiar de carrera en el select, precargar datos guardados
         document.getElementById("raceSelect").addEventListener("change", (e) => {
