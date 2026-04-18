@@ -993,10 +993,11 @@
             const detailText = parts.slice(1).join(" ");
             const timeMatch = detailText.match(/\b\d{1,2}:\d{2}\.\d{3}\b/);
             const statusMatch = detailText.match(/\b(DNF|DNS)\b/i);
+            const status = statusMatch ? statusMatch[1].toUpperCase() : "FINISHED";
             return {
                 name,
                 time: timeMatch ? timeMatch[0] : "",
-                status: statusMatch ? statusMatch[1].toUpperCase() : "",
+                status,
             };
         }
 
@@ -1023,7 +1024,7 @@
                     details[parsed.name] = {
                         position: idx + 1,
                         best_time: parsed.time,
-                        status: parsed.status,
+                        status: parsed.status || "FINISHED",
                     };
                 }
             });
@@ -1038,7 +1039,7 @@
 
         function formatRaceLine(name, index, detail) {
             const bestTime = detail?.best_time || "";
-            const status = detail?.status || "";
+            const status = detail?.status || "FINISHED";
             let line = `${index + 1}) ${name}`;
             if (bestTime) line += ` | ${bestTime}`;
             if (status) line += ` | ${status}`;
@@ -1100,7 +1101,7 @@
                     <td>${row.qTime}</td>
                     <td>${row.rPos ?? "-"}</td>
                     <td>${row.bestTime}</td>
-                    <td>${row.status}</td>
+                    <td>${row.status === "-" && row.rPos ? "FINISHED" : row.status}</td>
                 `;
                 body.appendChild(tr);
             });

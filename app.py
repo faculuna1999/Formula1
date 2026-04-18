@@ -240,6 +240,15 @@ def canonical_team_name(raw_team):
     return TEAM_ALIASES.get(cleaned, cleaned)
 
 
+def normalize_race_status(raw_status):
+    if not isinstance(raw_status, str):
+        return "FINISHED"
+    status = raw_status.strip().upper()
+    if status in {"DNF", "DNS"}:
+        return status
+    return "FINISHED"
+
+
 def build_schedule(state):
     start = parse_iso_date(state.get("season_start_date")) or next_monday()
     races = []
@@ -304,7 +313,39 @@ def compute_leaderboard(state):
         }
 
     for race_idx in range(len(state["tracks"])):
-        classification = state["results"].get(str(race_idx))
+        race_key = str(race_idx)
+        detailed_race = state.get("race_details", {}).get(race_key)
+
+        if isinstance(detailed_race, dict) and detailed_race:
+            ordered_rows = []
+            for driver_name, detail in detailed_race.items():
+                if driver_name not in stats or not isinstance(detail, dict):
+                    continue
+                position = detail.get("position")
+                if not isinstance(position, int):
+                    continue
+                status = normalize_race_status(detail.get("status"))
+                ordered_rows.append((position, driver_name, status))
+
+            ordered_rows.sort(key=lambda row: row[0])
+
+            for pos, name, status in ordered_rows:
+                if status in {"DNF", "DNS"}:
+                    continue
+                driver_stats = stats[name]
+                driver_stats["points"] += POINTS_BY_POSITION.get(pos, 0)
+                driver_stats["races_finished"] += 1
+                driver_stats["best_finish"] = min(driver_stats["best_finish"], pos)
+                driver_stats["position_history"].append(pos)
+                if pos == 1:
+                    driver_stats["wins"] += 1
+                if pos <= 3:
+                    driver_stats["podiums"] += 1
+                if pos <= 10:
+                    driver_stats["top10"] += 1
+            continue
+
+        classification = state["results"].get(race_key)
         if not classification:
             continue
 
@@ -549,9 +590,7 @@ def api_set_result():
                 return jsonify({"status": "error", "message": f"Piloto no registrado en carrera: {driver_name}"}), 400
             if not isinstance(detail, dict):
                 return jsonify({"status": "error", "message": "Cada detalle de carrera debe ser un objeto."}), 400
-            status = (detail.get("status") or "").strip().upper()
-            if status and status not in {"DNF", "DNS"}:
-                return jsonify({"status": "error", "message": f"Estado invalido para {driver_name}: {status}"}), 400
+            detail["status"] = normalize_race_status(detail.get("status"))
     if classification is not None:
         r_err = validate_classification(classification, state["participants"])
         if r_err:
