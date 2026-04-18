@@ -501,6 +501,33 @@
         .race-detail-modal td {
             font-size: 0.88rem;
         }
+
+        .player-profile-image-wrap {
+            text-align: center;
+        }
+
+        .player-profile-image {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            border: 2px solid rgba(154, 183, 255, 0.32);
+            cursor: zoom-in;
+            transition: width 0.22s ease, height 0.22s ease, border-radius 0.22s ease, box-shadow 0.22s ease;
+        }
+
+        .player-profile-image.expanded {
+            width: 300px;
+            height: 300px;
+            border-radius: 18px;
+            cursor: zoom-out;
+            box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45);
+        }
+
+        .player-profile-image-hint {
+            margin-top: 8px;
+            color: var(--muted);
+            font-size: 0.78rem;
+        }
         /* ---- Auth badge ---- */
         .auth-badge {
             display: flex; align-items: center; gap: 8px;
@@ -1182,8 +1209,9 @@
         <div class="modal" style="max-width: 500px;">
             <h2 id="playerProfileName">Perfil del piloto</h2>
             <div style="display: grid; gap: 12px; margin-top: 16px;">
-                <div style="text-align: center;">
-                    <img id="playerProfileImage" class="profile-photo" src="" alt="Foto" style="width: 120px; height: 120px; border-radius: 50%; border: 2px solid rgba(154, 183, 255, 0.32);">
+                <div class="player-profile-image-wrap">
+                    <img id="playerProfileImage" class="profile-photo player-profile-image" src="" alt="Foto">
+                    <div id="playerProfileImageHint" class="player-profile-image-hint">Click en la foto para ampliar</div>
                 </div>
                 <div>
                     <label class="small-muted">Número</label>
@@ -1657,6 +1685,12 @@
 
         let currentPlayerProfileName = "";
 
+        function togglePlayerProfileImageSize() {
+            const image = document.getElementById("playerProfileImage");
+            if (!image || image.style.display === "none") return;
+            image.classList.toggle("expanded");
+        }
+
         function calculatePlayerStats(playerName) {
             const stats = {
                 qualyPodiums: 0,
@@ -1700,10 +1734,14 @@
             const stats = calculatePlayerStats(playerName);
             const imageUrl = state.playerImages?.[playerName] || "";
             const bio = state.playerBios?.[playerName] || {};
+            const profileImage = document.getElementById("playerProfileImage");
+            const profileImageHint = document.getElementById("playerProfileImageHint");
 
             document.getElementById("playerProfileName").textContent = playerName;
             document.getElementById("playerProfileImage").src = imageUrl;
             document.getElementById("playerProfileImage").style.display = imageUrl ? "block" : "none";
+            if (profileImage) profileImage.classList.remove("expanded");
+            if (profileImageHint) profileImageHint.style.display = imageUrl ? "block" : "none";
             document.getElementById("playerProfileNumber").value = bio.number || "";
             document.getElementById("playerProfileBio").value = bio.bio || "";
             document.getElementById("playerQualyPodiums").textContent = stats.qualyPodiums;
@@ -2717,6 +2755,7 @@
 
         safeAddListener("savePlayerProfileBtn", "click", () => safeRun(savePlayerProfile));
         safeAddListener("closePlayerProfileBtn", "click", closePlayerProfile);
+        safeAddListener("playerProfileImage", "click", togglePlayerProfileImageSize);
         
         const playerProfileModal = document.getElementById("playerProfileModal");
         if (playerProfileModal) {
