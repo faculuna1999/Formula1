@@ -1541,12 +1541,12 @@
             </div>
 
             <div class="tv-layout">
-                <section class="tv-panel">
+                <section class="tv-panel" id="tvCategoriesPanel">
                     <h3 class="tv-category-title">Categorias TV</h3>
                     <div class="tv-clips-grid" id="tvClipsGrid"></div>
                 </section>
 
-                <section class="tv-panel">
+                <section class="tv-panel" id="tvUploadPanel">
                     <h3 class="tv-category-title">Cargar clip</h3>
                     <p class="small-muted" id="tvUploadHint">Inicia sesion para cargar videos.</p>
                     <form class="tv-upload-form" id="tvUploadForm">
@@ -1647,6 +1647,8 @@
             const comisarioEditBtn = document.getElementById("comisarioEditBtn");
             const tvUploadForm = document.getElementById("tvUploadForm");
             const tvUploadHint = document.getElementById("tvUploadHint");
+            const tvUploadPanel = document.getElementById("tvUploadPanel");
+            const tvCategoriesPanel = document.getElementById("tvCategoriesPanel");
             const deleteCurrentBtn = document.getElementById("deleteCurrentTvClipBtn");
             if (isAuthenticated) {
                 badge.textContent = "✅ Sesion activa — Cerrar sesion";
@@ -1659,6 +1661,8 @@
                 if (comisarioEditBtn) comisarioEditBtn.classList.add("visible");
                 if (tvUploadForm) tvUploadForm.style.display = "grid";
                 if (tvUploadHint) tvUploadHint.textContent = "Subi videos para mostrar en Modo TV.";
+                if (tvUploadPanel) tvUploadPanel.style.display = "block";
+                if (tvCategoriesPanel) tvCategoriesPanel.style.gridColumn = "";
                 if (deleteCurrentBtn) deleteCurrentBtn.style.display = "inline-flex";
             } else {
                 badge.textContent = "🔒 Iniciar sesion";
@@ -1671,6 +1675,8 @@
                 if (comisarioEditBtn) comisarioEditBtn.classList.remove("visible");
                 if (tvUploadForm) tvUploadForm.style.display = "none";
                 if (tvUploadHint) tvUploadHint.textContent = "Inicia sesion para cargar videos.";
+                if (tvUploadPanel) tvUploadPanel.style.display = "none";
+                if (tvCategoriesPanel) tvCategoriesPanel.style.gridColumn = "1 / -1";
                 if (deleteCurrentBtn) deleteCurrentBtn.style.display = "none";
             }
         }
