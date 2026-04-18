@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Facu Demo - Campeonato Formula 1</title>
+    <title>Liga autitos chocadores</title>
     <style>
         @import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Rajdhani:wght@400;500;600;700&display=swap");
 
@@ -114,6 +114,159 @@
             flex-wrap: wrap;
             gap: 10px;
             margin-top: 16px;
+        }
+
+        .podium-card {
+            grid-column: span 4;
+        }
+
+        .drivers-card {
+            grid-column: span 8;
+        }
+
+        .timeline-card {
+            grid-column: span 12;
+        }
+
+        .podium-wrap {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .podium-item {
+            border: 1px solid rgba(118, 149, 217, 0.32);
+            border-radius: 14px;
+            padding: 10px;
+            background: rgba(19, 28, 46, 0.7);
+            min-height: 110px;
+            display: grid;
+            gap: 5px;
+            align-content: start;
+        }
+
+        .podium-item .place {
+            font-family: "Orbitron", "Rajdhani", sans-serif;
+            font-size: 0.8rem;
+            color: var(--accent-cyan);
+        }
+
+        .podium-item .name {
+            font-weight: 700;
+            font-size: 1.06rem;
+        }
+
+        .podium-item .points {
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .podium-item.gold { border-color: #f6c969; }
+        .podium-item.silver { border-color: #c4d5f2; }
+        .podium-item.bronze { border-color: #d59673; }
+
+        .drivers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 10px;
+        }
+
+        .driver-card {
+            border: 1px solid rgba(118, 149, 217, 0.32);
+            border-radius: 12px;
+            padding: 10px;
+            background: rgba(17, 24, 40, 0.76);
+            display: grid;
+            gap: 6px;
+        }
+
+        .driver-top {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 1px solid rgba(154, 183, 255, 0.28);
+            display: grid;
+            place-items: center;
+            font-family: "Orbitron", "Rajdhani", sans-serif;
+            font-size: 0.8rem;
+            color: #dfe8ff;
+            background: rgba(57, 215, 255, 0.12);
+        }
+
+        .driver-name {
+            font-weight: 700;
+            font-size: 0.98rem;
+        }
+
+        .driver-team {
+            color: var(--muted);
+            font-size: 0.85rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .driver-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.86rem;
+        }
+
+        .trend-up { color: #7fffb0; }
+        .trend-down { color: #ff9f9f; }
+        .trend-flat { color: #b8c5e6; }
+
+        .timeline-wrap {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 6px;
+        }
+
+        .timeline-item {
+            min-width: 168px;
+            border: 1px solid rgba(118, 149, 217, 0.32);
+            border-radius: 12px;
+            padding: 8px;
+            background: rgba(16, 22, 37, 0.76);
+            display: grid;
+            gap: 4px;
+        }
+
+        .timeline-item .round {
+            font-family: "Orbitron", "Rajdhani", sans-serif;
+            color: var(--accent-cyan);
+            font-size: 0.78rem;
+        }
+
+        .timeline-item .track {
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .timeline-item .meta {
+            color: var(--muted);
+            font-size: 0.82rem;
+        }
+
+        .timeline-item.done { border-color: rgba(137, 247, 177, 0.45); }
+        .timeline-item.next { border-color: rgba(255, 59, 31, 0.58); }
+
+        .tv-modal {
+            max-width: 1100px;
+            border-color: rgba(57, 215, 255, 0.5);
+        }
+
+        .tv-modal .table-wrap {
+            max-height: 70vh;
+            margin-top: 10px;
         }
 
         .pill {
@@ -425,6 +578,9 @@
         }
 
         @media (max-width: 1024px) {
+            .podium-card,
+            .drivers-card,
+            .timeline-card,
             .participants-card,
             .result-card,
             .leaderboard-card,
@@ -447,13 +603,17 @@
             .hero h1 {
                 font-size: 1.4rem;
             }
+
+            .podium-wrap {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
     <main class="page">
         <section class="hero">
-            <h1>Campeonato Formula 1 - 20 Participantes</h1>
+            <h1>Liga autitos chocadores - 20 participantes</h1>
             <p>
                 Configura tus 20 jugadores, registra los resultados de cada carrera del calendario
                 y el sistema calculara los puntos automaticamente con la tabla oficial F1.
@@ -462,11 +622,30 @@
                 <span class="pill" id="metaCompleted">Carreras completadas: 0/0</span>
                 <span class="pill" id="metaNextRace">Proxima carrera: -</span>
                 <span class="pill">Puntaje F1: 25-18-15-12-10-8-6-4-2-1</span>
+                <button class="secondary" id="tvModeBtn" type="button">Modo TV</button>
                 <button class="auth-badge logged-out" id="authBadge" onclick="handleAuthClick()">🔒 Iniciar sesion</button>
             </div>
         </section>
 
         <section class="grid">
+            <article class="card podium-card">
+                <h2>Podium Actual</h2>
+                <p class="caption">Top 3 del campeonato en tiempo real.</p>
+                <div class="podium-wrap" id="podiumWrap"></div>
+            </article>
+
+            <article class="card drivers-card">
+                <h2>Pilotos en Radar</h2>
+                <p class="caption">Equipo, puntos y tendencia según la ultima carrera.</p>
+                <div class="drivers-grid" id="driversGrid"></div>
+            </article>
+
+            <article class="card timeline-card">
+                <h2>Timeline de Temporada</h2>
+                <p class="caption">Resumen de rondas, ganador y estado del calendario.</p>
+                <div class="timeline-wrap" id="timelineWrap"></div>
+            </article>
+
             <article class="card participants-card write-guard">
                 <h2>1) Participantes</h2>
                 <p class="caption">Carga entre 2 y 20 participantes. En cada fila define nombre y equipo.</p>
@@ -656,6 +835,30 @@
         </div>
     </div>
 
+    <div class="modal-backdrop" id="tvModeModal">
+        <div class="modal tv-modal">
+            <h2 id="tvModeTitle">Modo TV</h2>
+            <p class="small-muted" id="tvModeSubtitle">Vista limpia para compartir resultados.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Piloto</th>
+                            <th>Puntos</th>
+                            <th>Victorias</th>
+                            <th>Podios</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tvModeBody"></tbody>
+                </table>
+            </div>
+            <div class="btn-bar">
+                <button class="secondary" id="closeTvModeBtn" type="button">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://unpkg.com/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -768,6 +971,7 @@
             participants: [],
             schedule: [],
             leaderboard: [],
+            pointsSystem: {},
             completedRaces: 0,
             totalRaces: 0,
             nextRace: null,
@@ -785,6 +989,188 @@
             setTimeout(() => {
                 statusBox.className = "status";
             }, 3800);
+        }
+
+        function initialsFromName(name) {
+            const parts = (name || "").trim().split(/\s+/).filter(Boolean);
+            if (!parts.length) return "--";
+            if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+            return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+        }
+
+        function getRacePosition(raceIndex, driverName) {
+            const raceKey = String(raceIndex);
+            const detailPos = state.raceDetails?.[raceKey]?.[driverName]?.position;
+            if (Number.isInteger(detailPos)) return detailPos;
+            const results = state.results?.[raceKey] || [];
+            const idx = results.indexOf(driverName);
+            return idx >= 0 ? idx + 1 : null;
+        }
+
+        function completedRaceIndexes() {
+            return state.schedule
+                .filter((race) => race.has_result)
+                .map((race) => race.race_index)
+                .sort((a, b) => a - b);
+        }
+
+        function getTrend(driverName) {
+            const completed = completedRaceIndexes();
+            if (completed.length < 2) return { symbol: "-", cls: "trend-flat", label: "sin dato" };
+            const last = completed[completed.length - 1];
+            const prev = completed[completed.length - 2];
+            const lastPos = getRacePosition(last, driverName);
+            const prevPos = getRacePosition(prev, driverName);
+            if (!lastPos || !prevPos) return { symbol: "-", cls: "trend-flat", label: "sin dato" };
+            if (lastPos < prevPos) return { symbol: "▲", cls: "trend-up", label: `sube ${prevPos - lastPos}` };
+            if (lastPos > prevPos) return { symbol: "▼", cls: "trend-down", label: `baja ${lastPos - prevPos}` };
+            return { symbol: "■", cls: "trend-flat", label: "igual" };
+        }
+
+        function pointsFromPosition(position) {
+            if (!position) return 0;
+            return Number(state.pointsSystem?.[position] || 0);
+        }
+
+        function lastRacePoints(driverName) {
+            const completed = completedRaceIndexes();
+            if (!completed.length) return 0;
+            const last = completed[completed.length - 1];
+            const status = (state.raceDetails?.[String(last)]?.[driverName]?.status || "FINISHED").toUpperCase();
+            if (status === "DNF" || status === "DNS") return 0;
+            const pos = getRacePosition(last, driverName);
+            return pointsFromPosition(pos);
+        }
+
+        function renderPodium() {
+            const wrap = document.getElementById("podiumWrap");
+            wrap.innerHTML = "";
+            const top3 = (state.leaderboard || []).slice(0, 3);
+            const fallback = ["1ro", "2do", "3ro"];
+
+            top3.forEach((driver, idx) => {
+                const card = document.createElement("div");
+                const klass = idx === 0 ? "gold" : idx === 1 ? "silver" : "bronze";
+                card.className = `podium-item ${klass}`;
+                card.innerHTML = `
+                    <div class="place">${fallback[idx]}</div>
+                    <div class="name">${driver.name}</div>
+                    <div class="points">${driver.points} pts</div>
+                `;
+                wrap.appendChild(card);
+            });
+
+            for (let idx = top3.length; idx < 3; idx += 1) {
+                const card = document.createElement("div");
+                card.className = "podium-item";
+                card.innerHTML = `<div class="place">${fallback[idx]}</div><div class="name">-</div><div class="points">0 pts</div>`;
+                wrap.appendChild(card);
+            }
+        }
+
+        function renderDriversGrid() {
+            const grid = document.getElementById("driversGrid");
+            grid.innerHTML = "";
+            (state.leaderboard || []).forEach((driver) => {
+                const trend = getTrend(driver.name);
+                const team = state.teams?.[driver.name] || "Sin equipo";
+                const card = document.createElement("div");
+                card.className = "driver-card";
+                card.innerHTML = `
+                    <div class="driver-top">
+                        <div class="avatar">${initialsFromName(driver.name)}</div>
+                        <div>
+                            <div class="driver-name">${driver.name}</div>
+                            <div class="driver-team">${team}</div>
+                        </div>
+                    </div>
+                    <div class="driver-stats">
+                        <span>${driver.points} pts</span>
+                        <span class="${trend.cls}" title="${trend.label}">${trend.symbol}</span>
+                    </div>
+                    <div class="small-muted">Ultima carrera: +${lastRacePoints(driver.name)} pts</div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function renderTimeline() {
+            const wrap = document.getElementById("timelineWrap");
+            wrap.innerHTML = "";
+            (state.schedule || []).forEach((race) => {
+                const item = document.createElement("div");
+                const klass = race.has_result ? "done" : state.nextRace && race.race_index === state.nextRace.race_index ? "next" : "";
+                item.className = `timeline-item ${klass}`.trim();
+                const winner = (state.results?.[String(race.race_index)] || [])[0] || "-";
+                const pole = (state.qualifying?.[String(race.race_index)] || [])[0] || "-";
+                item.innerHTML = `
+                    <div class="round">R${race.round}</div>
+                    <div class="track">${race.track}</div>
+                    <div class="meta">${race.date}</div>
+                    <div class="meta">Pole: ${pole}</div>
+                    <div class="meta">Ganador: ${winner}</div>
+                `;
+                item.addEventListener("click", () => {
+                    selectRace(race.race_index);
+                    openRaceDetailModal(race.race_index);
+                });
+                wrap.appendChild(item);
+            });
+        }
+
+        function themeForTrack(track) {
+            const key = (track || "").toLowerCase();
+            if (key.includes("monaco") || key.includes("marina")) {
+                return { accent: "#f59e0b", dark: "#c27803", cyan: "#5eead4" };
+            }
+            if (key.includes("silverstone") || key.includes("spa") || key.includes("zandvoort")) {
+                return { accent: "#38bdf8", dark: "#1f7dbb", cyan: "#a5f3fc" };
+            }
+            if (key.includes("monza") || key.includes("imola") || key.includes("barcelona")) {
+                return { accent: "#22c55e", dark: "#15803d", cyan: "#86efac" };
+            }
+            return { accent: "#ff3b1f", dark: "#c62711", cyan: "#39d7ff" };
+        }
+
+        function applyRaceTheme(raceIndex) {
+            const race = state.schedule.find((item) => item.race_index === raceIndex)
+                || state.nextRace
+                || state.schedule[0];
+            if (!race) return;
+            const theme = themeForTrack(race.track);
+            document.documentElement.style.setProperty("--accent", theme.accent);
+            document.documentElement.style.setProperty("--accent-dark", theme.dark);
+            document.documentElement.style.setProperty("--accent-cyan", theme.cyan);
+        }
+
+        function renderTvMode() {
+            const body = document.getElementById("tvModeBody");
+            body.innerHTML = "";
+            (state.leaderboard || []).forEach((row) => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${row.rank}</td>
+                    <td>${row.name}</td>
+                    <td><strong>${row.points}</strong></td>
+                    <td>${row.wins}</td>
+                    <td>${row.podiums}</td>
+                `;
+                body.appendChild(tr);
+            });
+            document.getElementById("tvModeTitle").textContent = "Modo TV - Liga autitos chocadores";
+            const nextRaceLabel = state.nextRace
+                ? `Proxima: R${state.nextRace.round} - ${state.nextRace.track}`
+                : "Temporada finalizada";
+            document.getElementById("tvModeSubtitle").textContent = `${state.completedRaces}/${state.totalRaces} carreras completadas | ${nextRaceLabel}`;
+        }
+
+        function openTvMode() {
+            renderTvMode();
+            document.getElementById("tvModeModal").classList.add("open");
+        }
+
+        function closeTvMode() {
+            document.getElementById("tvModeModal").classList.remove("open");
         }
 
         function renderParticipantRows(rows) {
@@ -1348,6 +1734,7 @@
             state.participants = data.participants;
             state.schedule = data.schedule;
             state.leaderboard = data.leaderboard;
+            state.pointsSystem = data.points_system || {};
             state.completedRaces = data.completed_races;
             state.totalRaces = data.total_races;
             state.nextRace = data.next_race;
@@ -1374,6 +1761,9 @@
             renderLeaderboard(state.leaderboard);
             renderConstructorsLeaderboard();
             renderSchedule(state.schedule);
+            renderPodium();
+            renderDriversGrid();
+            renderTimeline();
             renderHeaderMeta();
             if (state.schedule.length > 0) {
                 const selected = Number(document.getElementById("raceSelect").value);
@@ -1381,6 +1771,7 @@
                     ? selected
                     : state.schedule[0].race_index;
                 renderRaceDetails(selectedRaceIndex);
+                applyRaceTheme(selectedRaceIndex);
             } else {
                 renderRaceDetails(-1);
             }
@@ -1406,6 +1797,7 @@
                 : "";
 
             renderRaceDetails(raceIndex);
+            applyRaceTheme(raceIndex);
 
             if (isAuthenticated) {
                 document.getElementById("saveResultBtn").scrollIntoView({ behavior: "smooth", block: "center" });
@@ -1533,6 +1925,11 @@
         document.getElementById("closeRaceDetailBtn").addEventListener("click", closeRaceDetailModal);
         document.getElementById("raceDetailModal").addEventListener("click", (e) => {
             if (e.target === e.currentTarget) closeRaceDetailModal();
+        });
+        document.getElementById("tvModeBtn").addEventListener("click", openTvMode);
+        document.getElementById("closeTvModeBtn").addEventListener("click", closeTvMode);
+        document.getElementById("tvModeModal").addEventListener("click", (e) => {
+            if (e.target === e.currentTarget) closeTvMode();
         });
 
         // Al cambiar de carrera en el select, precargar datos guardados
