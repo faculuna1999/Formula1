@@ -400,6 +400,98 @@
             margin-top: 10px;
         }
 
+        .tv-layout {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 14px;
+            margin-top: 12px;
+        }
+
+        .tv-panel {
+            border: 1px solid rgba(118, 149, 217, 0.32);
+            border-radius: 12px;
+            background: rgba(16, 22, 37, 0.62);
+            padding: 12px;
+        }
+
+        .tv-clips-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            max-height: 50vh;
+            overflow: auto;
+            padding-right: 4px;
+        }
+
+        .tv-category-card {
+            border: 1px solid rgba(118, 149, 217, 0.3);
+            border-radius: 10px;
+            padding: 10px;
+            background: rgba(11, 16, 28, 0.8);
+            display: grid;
+            gap: 8px;
+        }
+
+        .tv-category-title {
+            margin: 0;
+            font-family: "Orbitron", "Rajdhani", sans-serif;
+            font-size: 0.92rem;
+            letter-spacing: 0.4px;
+            color: #e5f5ff;
+        }
+
+        .tv-video-card {
+            border: 1px solid rgba(57, 215, 255, 0.24);
+            border-radius: 10px;
+            padding: 8px;
+            background: rgba(13, 19, 32, 0.86);
+            display: grid;
+            gap: 6px;
+        }
+
+        .tv-video-card video {
+            width: 100%;
+            border-radius: 8px;
+            background: #000;
+            max-height: 220px;
+        }
+
+        .tv-video-title {
+            font-weight: 700;
+            font-size: 0.94rem;
+        }
+
+        .tv-video-meta {
+            color: var(--muted);
+            font-size: 0.82rem;
+        }
+
+        .tv-upload-form {
+            display: grid;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .tv-upload-form label {
+            color: var(--muted);
+            font-size: 0.84rem;
+            margin-top: 2px;
+        }
+
+        .tv-upload-form select,
+        .tv-upload-form input {
+            width: 100%;
+        }
+
+        .tv-empty {
+            color: var(--muted);
+            font-size: 0.84rem;
+            border: 1px dashed rgba(118, 149, 217, 0.35);
+            border-radius: 8px;
+            padding: 8px;
+            text-align: center;
+        }
+
         .pill {
             padding: 8px 12px;
             border-radius: 999px;
@@ -963,6 +1055,10 @@
             .constructors-podium-grid {
                 grid-template-columns: 1fr;
             }
+
+            .tv-layout {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -1251,6 +1347,62 @@
         </div>
     </div>
 
+    <div class="modal-backdrop" id="tvModeModal">
+        <div class="modal tv-modal">
+            <h2 id="tvModeTitle">Modo TV</h2>
+            <p class="small-muted" id="tvModeSubtitle">Resumen de temporada</p>
+
+            <div class="table-wrap tv-panel">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Piloto</th>
+                            <th>Puntos</th>
+                            <th>Victorias</th>
+                            <th>Podios</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tvModeBody"></tbody>
+                </table>
+            </div>
+
+            <div class="tv-layout">
+                <section class="tv-panel">
+                    <h3 class="tv-category-title">Categorias TV</h3>
+                    <div class="tv-clips-grid" id="tvClipsGrid"></div>
+                </section>
+
+                <section class="tv-panel">
+                    <h3 class="tv-category-title">Cargar clip</h3>
+                    <p class="small-muted" id="tvUploadHint">Inicia sesion para cargar videos.</p>
+                    <form class="tv-upload-form" id="tvUploadForm">
+                        <label for="tvCategoryInput">Categoria</label>
+                        <select id="tvCategoryInput" required>
+                            <option value="epic_fails">Epic fails</option>
+                            <option value="mejores_adelantamientos">Mejores adelantamientos</option>
+                        </select>
+
+                        <label for="tvTitleInput">Titulo</label>
+                        <input id="tvTitleInput" type="text" maxlength="120" placeholder="Ej: Caos total en la curva 1" required>
+
+                        <label for="tvParticipantsInput">Quienes participaron</label>
+                        <input id="tvParticipantsInput" type="text" maxlength="160" placeholder="Ej: Facu, Nico y Agus">
+
+                        <label for="tvVideoInput">Video</label>
+                        <input id="tvVideoInput" type="file" accept="video/*" required>
+
+                        <button class="primary" id="saveTvClipBtn" type="submit">Subir clip</button>
+                    </form>
+                </section>
+            </div>
+
+            <div class="btn-bar" style="margin-top: 12px;">
+                <button class="secondary" id="closeTvModeBtn" type="button">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://unpkg.com/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -1289,6 +1441,8 @@
             const badge = document.getElementById("authBadge");
             const writeSections = document.querySelectorAll(".write-guard");
             const comisarioEditBtn = document.getElementById("comisarioEditBtn");
+            const tvUploadForm = document.getElementById("tvUploadForm");
+            const tvUploadHint = document.getElementById("tvUploadHint");
             if (isAuthenticated) {
                 badge.textContent = "✅ Sesion activa — Cerrar sesion";
                 badge.className = "auth-badge logged-in";
@@ -1298,6 +1452,8 @@
                     el.style.pointerEvents = "auto";
                 });
                 if (comisarioEditBtn) comisarioEditBtn.classList.add("visible");
+                if (tvUploadForm) tvUploadForm.style.display = "grid";
+                if (tvUploadHint) tvUploadHint.textContent = "Subi videos para mostrar en Modo TV.";
             } else {
                 badge.textContent = "🔒 Iniciar sesion";
                 badge.className = "auth-badge logged-out";
@@ -1307,6 +1463,8 @@
                     el.style.pointerEvents = "none";
                 });
                 if (comisarioEditBtn) comisarioEditBtn.classList.remove("visible");
+                if (tvUploadForm) tvUploadForm.style.display = "none";
+                if (tvUploadHint) tvUploadHint.textContent = "Inicia sesion para cargar videos.";
             }
         }
 
@@ -1391,6 +1549,7 @@
             playerImages: {},
             playerBios: {},
             comisarioImage: "",
+            tvClips: {},
         };
 
         function showStatus(message, type) {
@@ -1400,6 +1559,15 @@
             setTimeout(() => {
                 statusBox.className = "status";
             }, 3800);
+        }
+
+        function escapeHtml(raw) {
+            return (raw || "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#39;");
         }
 
         function setComisarioImagePreview(imageUrl) {
@@ -1659,6 +1827,7 @@
 
         function renderTvMode() {
             const body = document.getElementById("tvModeBody");
+            if (!body) return;
             body.innerHTML = "";
             (state.leaderboard || []).forEach((row) => {
                 const tr = document.createElement("tr");
@@ -1671,11 +1840,89 @@
                 `;
                 body.appendChild(tr);
             });
-            document.getElementById("tvModeTitle").textContent = "Modo TV - Liga autitos chocadores";
+            const titleEl = document.getElementById("tvModeTitle");
+            if (titleEl) titleEl.textContent = "Modo TV - Liga autitos chocadores";
             const nextRaceLabel = state.nextRace
                 ? `Proxima: R${state.nextRace.round} - ${state.nextRace.track}`
                 : "Temporada finalizada";
-            document.getElementById("tvModeSubtitle").textContent = `${state.completedRaces}/${state.totalRaces} carreras completadas | ${nextRaceLabel}`;
+            const subtitleEl = document.getElementById("tvModeSubtitle");
+            if (subtitleEl) {
+                subtitleEl.textContent = `${state.completedRaces}/${state.totalRaces} carreras completadas | ${nextRaceLabel}`;
+            }
+            renderTvClips();
+        }
+
+        function renderTvClips() {
+            const grid = document.getElementById("tvClipsGrid");
+            if (!grid) return;
+
+            const categories = [
+                { key: "epic_fails", label: "Epic fails" },
+                { key: "mejores_adelantamientos", label: "Mejores adelantamientos" },
+            ];
+
+            grid.innerHTML = "";
+            categories.forEach((category) => {
+                const card = document.createElement("article");
+                card.className = "tv-category-card";
+
+                const clips = Array.isArray(state.tvClips?.[category.key]) ? state.tvClips[category.key] : [];
+                const clipsHtml = clips.length
+                    ? clips.map((clip) => `
+                        <div class="tv-video-card">
+                            <video controls preload="metadata" src="${escapeHtml(clip.video_url)}"></video>
+                            <div class="tv-video-title">${escapeHtml(clip.title)}</div>
+                            <div class="tv-video-meta">Participan: ${escapeHtml(clip.participants || "-")}</div>
+                        </div>
+                    `).join("")
+                    : '<div class="tv-empty">Todavia no hay videos cargados.</div>';
+
+                card.innerHTML = `
+                    <h4 class="tv-category-title">${category.label}</h4>
+                    ${clipsHtml}
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        async function saveTvClip(event) {
+            event.preventDefault();
+            if (!isAuthenticated) {
+                throw new Error("Inicia sesion para subir clips.");
+            }
+
+            const category = document.getElementById("tvCategoryInput").value;
+            const title = document.getElementById("tvTitleInput").value.trim();
+            const participants = document.getElementById("tvParticipantsInput").value.trim();
+            const videoFile = document.getElementById("tvVideoInput").files?.[0];
+
+            if (!title) {
+                throw new Error("El titulo es obligatorio.");
+            }
+            if (!videoFile) {
+                throw new Error("Selecciona un video para subir.");
+            }
+
+            const formData = new FormData();
+            formData.append("category", category);
+            formData.append("title", title);
+            formData.append("participants", participants);
+            formData.append("video", videoFile);
+
+            const response = await fetch(`${API_BASE}/tv-clips`, {
+                method: "POST",
+                credentials: "include",
+                body: formData,
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || "No se pudo subir el clip.");
+            }
+
+            document.getElementById("tvUploadForm").reset();
+            showStatus(data.message || "Clip cargado correctamente.", "success");
+            await fetchState();
+            openTvMode();
         }
 
         function openTvMode() {
@@ -2559,6 +2806,7 @@
             state.playerImages = data.player_images || {};
             state.playerBios = data.player_bios || {};
             state.comisarioImage = data.comisario_image || "";
+            state.tvClips = data.tv_clips || {};
 
             document.getElementById("seasonStartDate").value = data.season_start_date;
             const rows = state.participants.length > 0
@@ -2765,6 +3013,7 @@
         
         safeAddListener("tvModeBtn", "click", openTvMode);
         safeAddListener("closeTvModeBtn", "click", closeTvMode);
+        safeAddListener("tvUploadForm", "submit", (e) => safeRun(() => saveTvClip(e)));
         
         const tvModeModal = document.getElementById("tvModeModal");
         if (tvModeModal) {

@@ -37,6 +37,10 @@ CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME", "").strip()
 CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY", "").strip()
 CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET", "").strip()
 COMISARIO_PUBLIC_ID = "facu-demo/comisario"
+TV_VIDEO_CATEGORIES = {
+    "epic_fails": "Epic fails",
+    "mejores_adelantamientos": "Mejores adelantamientos",
+}
 
 _CLOUDINARY_CACHE = {
     "expires_at": 0,
@@ -159,6 +163,12 @@ def player_public_id(player_name):
     return f"facu-demo/players/{slugify_identifier(player_name)}"
 
 
+def clip_public_id(category, title):
+    category_slug = slugify_identifier(category)
+    title_slug = slugify_identifier(title)[:40]
+    return f"facu-demo/tv/{category_slug}/{int(time.time())}-{title_slug}"
+
+
 def parse_data_image(data_url):
     match = re.match(r"^data:(image/[a-zA-Z0-9.+-]+);base64,(.+)$", data_url or "", re.DOTALL)
     if not match:
@@ -225,6 +235,80 @@ def upload_data_image_to_cloudinary(data_url, public_id):
         raise RuntimeError("Cloudinary no devolvio secure_url.")
 
     return secure_url.strip()
+
+
+def upload_binary_to_cloudinary(binary, mime_type, filename, public_id, resource_type):
+    if not cloudinary_is_configured():
+        raise RuntimeError("Cloudinary no esta configurado.")
+
+    upload_url = f"https://api.cloudinary.com/v1_1/{CLOUDINARY_CLOUD_NAME}/{resource_type}/upload"
+    timestamp = int(time.time())
+    params_to_sign = {
+        "timestamp": timestamp,
+        "public_id": public_id,
+        "overwrite": "true",
+        "invalidate": "true",
+    }
+    signature = sign_cloudinary_params(params_to_sign)
+
+    payload = {
+        **params_to_sign,
+        "api_key": CLOUDINARY_API_KEY,
+        "signature": signature,
+    }
+    files = {
+        "file": (filename, binary, mime_type),
+    }
+
+    response = requests.post(upload_url, data=payload, files=files, timeout=90)
+    if response.status_code >= 400:
+        raise RuntimeError(f"Cloudinary error ({response.status_code}): {response.text[:250]}")
+
+    data = response.json()
+    secure_url = data.get("secure_url")
+    if not isinstance(secure_url, str) or not secure_url.strip():
+        raise RuntimeError("Cloudinary no devolvio secure_url.")
+
+    return secure_url.strip()
+
+
+def normalize_tv_clips(raw):
+    if not isinstance(raw, dict):
+        return {key: [] for key in TV_VIDEO_CATEGORIES}
+
+    normalized = {}
+    for category in TV_VIDEO_CATEGORIES:
+        items = raw.get(category, [])
+        if not isinstance(items, list):
+            normalized[category] = []
+            continue
+
+        safe_items = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            title = (item.get("title") or "").strip()
+            video_url = (item.get("video_url") or "").strip()
+            participants = (item.get("participants") or "").strip()
+            clip_id = (item.get("id") or "").strip()
+            created_at = (item.get("created_at") or "").strip()
+            if not title or not video_url:
+                continue
+            if not (video_url.startswith("http://") or video_url.startswith("https://")):
+                continue
+            safe_items.append(
+                {
+                    "id": clip_id or secrets.token_hex(8),
+                    "title": title[:120],
+                    "participants": participants[:160],
+                    "video_url": video_url,
+                    "created_at": created_at,
+                }
+            )
+
+        normalized[category] = safe_items[:30]
+
+    return normalized
 
 
 def fetch_cloudinary_resources_map(force=False):
@@ -305,6 +389,7 @@ def build_default_state():
         "player_images": {},
         "player_bios": {},
         "comisario_image": "",
+        "tv_clips": {key: [] for key in TV_VIDEO_CATEGORIES},
         "dates": {},
         "teams": teams_map,
     }
@@ -361,6 +446,7 @@ def load_state():
     state["player_images"] = state.get("player_images", {})
     state["player_bios"] = state.get("player_bios", {})
     state["comisario_image"] = state.get("comisario_image", "") if isinstance(state.get("comisario_image", ""), str) else ""
+    state["tv_clips"] = normalize_tv_clips(state.get("tv_clips", {}))
     state["dates"] = state.get("dates", {})
     state["season_start_date"] = state.get("season_start_date", next_monday().isoformat())
     cloudinary_resources = fetch_cloudinary_resources_map() if cloudinary_is_configured() else {}
@@ -635,6 +721,7 @@ def get_state_payload():
         "player_images": state["player_images"],
         "player_bios": state["player_bios"],
         "comisario_image": state["comisario_image"],
+        "tv_clips": state["tv_clips"],
         "teams_leaderboard": teams_leaderboard,
         "completed_races": completed_races,
         "total_races": len(schedule),
@@ -811,6 +898,77 @@ def api_update_comisario_image():
     state["comisario_image"] = image_data
     save_state(state)
     return jsonify({"status": "success", "message": "Foto del comisario guardada correctamente."}), 200
+
+
+@app.route("/api/tv-clips", methods=["POST"])
+@app.route(f"{script_name}/api/tv-clips", methods=["POST"])
+@login_required
+def api_create_tv_clip():
+    form_data = request.form if request.form else {}
+    json_data = request.get_json(silent=True) or {}
+
+    category = (form_data.get("category") or json_data.get("category") or "").strip().lower()
+    if category not in TV_VIDEO_CATEGORIES:
+        return jsonify({"status": "error", "message": "Categoria invalida."}), 400
+
+    title = (form_data.get("title") or json_data.get("title") or "").strip()
+    if not title:
+        return jsonify({"status": "error", "message": "El titulo es obligatorio."}), 400
+
+    participants = (form_data.get("participants") or json_data.get("participants") or "").strip()
+    if len(participants) > 160:
+        return jsonify({"status": "error", "message": "Participantes demasiado largo."}), 400
+
+    video_url = ""
+    uploaded_file = request.files.get("video")
+    if uploaded_file and uploaded_file.filename:
+        mime_type = (uploaded_file.mimetype or "").lower()
+        if not mime_type.startswith("video/"):
+            return jsonify({"status": "error", "message": "El archivo debe ser un video."}), 400
+
+        binary = uploaded_file.read()
+        if not binary:
+            return jsonify({"status": "error", "message": "No se pudo leer el video."}), 400
+        if len(binary) > 120 * 1024 * 1024:
+            return jsonify({"status": "error", "message": "El video supera el limite de 120MB."}), 400
+
+        if not cloudinary_is_configured():
+            return jsonify({"status": "error", "message": "Cloudinary no esta configurado para subir videos."}), 400
+
+        public_id = clip_public_id(category, title)
+        try:
+            video_url = upload_binary_to_cloudinary(
+                binary=binary,
+                mime_type=mime_type,
+                filename=uploaded_file.filename,
+                public_id=public_id,
+                resource_type="video",
+            )
+        except Exception as error:
+            logger.warning("No se pudo subir clip de TV a Cloudinary: %s", error)
+            return jsonify({"status": "error", "message": "No se pudo subir el video a Cloudinary."}), 400
+    else:
+        maybe_url = (form_data.get("video_url") or json_data.get("video_url") or "").strip()
+        if maybe_url.startswith("http://") or maybe_url.startswith("https://"):
+            video_url = maybe_url
+        else:
+            return jsonify({"status": "error", "message": "Debes adjuntar un video o URL valida."}), 400
+
+    state = load_state()
+    state["tv_clips"] = normalize_tv_clips(state.get("tv_clips", {}))
+
+    new_clip = {
+        "id": secrets.token_hex(8),
+        "title": title[:120],
+        "participants": participants[:160],
+        "video_url": video_url,
+        "created_at": datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+    }
+    state["tv_clips"][category].insert(0, new_clip)
+    state["tv_clips"][category] = state["tv_clips"][category][:30]
+
+    save_state(state)
+    return jsonify({"status": "success", "message": "Clip cargado correctamente.", "clip": new_clip}), 200
 
 
 @app.route("/api/results", methods=["POST"])
