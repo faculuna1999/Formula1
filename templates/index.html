@@ -635,6 +635,24 @@
             margin-top: 2px;
         }
 
+        .tv-upload-status {
+            min-height: 1.3rem;
+            font-size: 0.84rem;
+            margin-top: 4px;
+        }
+
+        .tv-upload-status.info {
+            color: #9ddfff;
+        }
+
+        .tv-upload-status.success {
+            color: #8ff3b8;
+        }
+
+        .tv-upload-status.error {
+            color: #ffb4b4;
+        }
+
         .tv-upload-form select,
         .tv-upload-form input {
             width: 100%;
@@ -1548,6 +1566,7 @@
                         <input id="tvVideoInput" type="file" accept="video/*" required>
 
                         <button class="primary" id="saveTvClipBtn" type="submit">Subir clip</button>
+                        <div id="tvUploadStatus" class="tv-upload-status"></div>
                     </form>
                 </section>
             </div>
@@ -1789,6 +1808,13 @@
 
         function getCategoryClips(categoryKey) {
             return Array.isArray(state.tvClips?.[categoryKey]) ? state.tvClips[categoryKey] : [];
+        }
+
+        function setTvUploadStatus(message = "", type = "") {
+            const el = document.getElementById("tvUploadStatus");
+            if (!el) return;
+            el.textContent = message;
+            el.className = `tv-upload-status ${type}`.trim();
         }
 
         function renderTvMode() {
@@ -2169,42 +2195,72 @@
 
         async function saveTvClip(event) {
             event.preventDefault();
-            if (!isAuthenticated) {
-                throw new Error("Inicia sesion para subir clips.");
+            const saveBtn = document.getElementById("saveTvClipBtn");
+            const originalText = saveBtn ? saveBtn.textContent : "Subir clip";
+
+            try {
+                if (!isAuthenticated) {
+                    throw new Error("Inicia sesion para subir clips.");
+                }
+
+                const category = document.getElementById("tvCategoryInput").value;
+                const title = document.getElementById("tvTitleInput").value.trim();
+                const participants = document.getElementById("tvParticipantsInput").value.trim();
+                const videoFile = document.getElementById("tvVideoInput").files?.[0];
+
+                if (!title) {
+                    throw new Error("El titulo es obligatorio.");
+                }
+                if (!videoFile) {
+                    throw new Error("Selecciona un video para subir.");
+                }
+
+                if (saveBtn) {
+                    saveBtn.disabled = true;
+                    saveBtn.textContent = "Subiendo...";
+                }
+                setTvUploadStatus("Subiendo video, puede tardar unos segundos...", "info");
+
+                const formData = new FormData();
+                formData.append("category", category);
+                formData.append("title", title);
+                formData.append("participants", participants);
+                formData.append("video", videoFile);
+
+                const response = await fetch(`${API_BASE}/tv-clips`, {
+                    method: "POST",
+                    credentials: "include",
+                    body: formData,
+                });
+
+                let data = null;
+                let rawBody = "";
+                try {
+                    rawBody = await response.text();
+                    data = rawBody ? JSON.parse(rawBody) : null;
+                } catch {
+                    data = null;
+                }
+
+                if (!response.ok) {
+                    const message = (data && data.message) || rawBody || "No se pudo subir el clip.";
+                    throw new Error(message);
+                }
+
+                document.getElementById("tvUploadForm").reset();
+                setTvUploadStatus(data?.message || "Clip cargado correctamente.", "success");
+                showStatus(data?.message || "Clip cargado correctamente.", "success");
+                await fetchState();
+                openTvMode();
+            } catch (error) {
+                setTvUploadStatus(error.message || "Error al subir clip.", "error");
+                throw error;
+            } finally {
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = originalText;
+                }
             }
-
-            const category = document.getElementById("tvCategoryInput").value;
-            const title = document.getElementById("tvTitleInput").value.trim();
-            const participants = document.getElementById("tvParticipantsInput").value.trim();
-            const videoFile = document.getElementById("tvVideoInput").files?.[0];
-
-            if (!title) {
-                throw new Error("El titulo es obligatorio.");
-            }
-            if (!videoFile) {
-                throw new Error("Selecciona un video para subir.");
-            }
-
-            const formData = new FormData();
-            formData.append("category", category);
-            formData.append("title", title);
-            formData.append("participants", participants);
-            formData.append("video", videoFile);
-
-            const response = await fetch(`${API_BASE}/tv-clips`, {
-                method: "POST",
-                credentials: "include",
-                body: formData,
-            });
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.message || "No se pudo subir el clip.");
-            }
-
-            document.getElementById("tvUploadForm").reset();
-            showStatus(data.message || "Clip cargado correctamente.", "success");
-            await fetchState();
-            openTvMode();
         }
 
         function openTvMode() {
