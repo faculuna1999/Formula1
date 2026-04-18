@@ -475,13 +475,19 @@
             padding-bottom: 4px;
         }
 
+        .tv-video-item {
+            position: relative;
+            width: 170px;
+            min-width: 170px;
+        }
+
         .tv-video-thumb {
             border: 1px solid rgba(57, 215, 255, 0.22);
             border-radius: 10px;
             background: rgba(13, 19, 32, 0.9);
             padding: 6px;
-            width: 170px;
-            min-width: 170px;
+            width: 100%;
+            min-width: 100%;
             text-align: left;
             cursor: pointer;
             color: #eef4ff;
@@ -523,6 +529,34 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+
+        .tv-video-delete {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 24px;
+            height: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 999px;
+            background: rgba(0, 0, 0, 0.68);
+            color: #fff;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3;
+        }
+
+        .tv-video-item.can-delete .tv-video-delete {
+            display: inline-flex;
+        }
+
+        .tv-video-delete:hover {
+            border-color: rgba(255, 96, 96, 0.8);
+            color: #ffb5b5;
         }
 
         .modal.tv-player-modal {
@@ -581,6 +615,12 @@
             margin-top: 2px;
             color: var(--muted);
             font-size: 0.9rem;
+        }
+
+        .danger {
+            border-color: rgba(255, 92, 92, 0.5);
+            background: rgba(94, 20, 20, 0.75);
+            color: #ffd6d6;
         }
 
         .tv-upload-form {
@@ -1530,6 +1570,7 @@
             <div class="tv-player-title" id="tvPlayerTitle">Titulo</div>
             <div class="tv-player-subtitle" id="tvPlayerParticipants">Participan: -</div>
             <div class="btn-bar" style="margin-top: 12px;">
+                <button class="secondary danger" id="deleteCurrentTvClipBtn" type="button">Eliminar clip</button>
                 <button class="secondary" id="closeTvPlayerBtn" type="button">Cerrar</button>
             </div>
         </div>
@@ -1581,6 +1622,7 @@
             const comisarioEditBtn = document.getElementById("comisarioEditBtn");
             const tvUploadForm = document.getElementById("tvUploadForm");
             const tvUploadHint = document.getElementById("tvUploadHint");
+            const deleteCurrentBtn = document.getElementById("deleteCurrentTvClipBtn");
             if (isAuthenticated) {
                 badge.textContent = "✅ Sesion activa — Cerrar sesion";
                 badge.className = "auth-badge logged-in";
@@ -1592,6 +1634,7 @@
                 if (comisarioEditBtn) comisarioEditBtn.classList.add("visible");
                 if (tvUploadForm) tvUploadForm.style.display = "grid";
                 if (tvUploadHint) tvUploadHint.textContent = "Subi videos para mostrar en Modo TV.";
+                if (deleteCurrentBtn) deleteCurrentBtn.style.display = "inline-flex";
             } else {
                 badge.textContent = "🔒 Iniciar sesion";
                 badge.className = "auth-badge logged-out";
@@ -1603,6 +1646,7 @@
                 if (comisarioEditBtn) comisarioEditBtn.classList.remove("visible");
                 if (tvUploadForm) tvUploadForm.style.display = "none";
                 if (tvUploadHint) tvUploadHint.textContent = "Inicia sesion para cargar videos.";
+                if (deleteCurrentBtn) deleteCurrentBtn.style.display = "none";
             }
         }
 
@@ -1778,11 +1822,14 @@
                 const clips = getCategoryClips(category.key);
                 const clipsHtml = clips.length
                     ? clips.map((clip, idx) => `
-                        <button class="tv-video-thumb" type="button" data-tv-category="${category.key}" data-tv-index="${idx}">
-                            <video muted playsinline preload="metadata" src="${escapeHtml(clip.video_url)}"></video>
-                            <span class="tv-video-title">${escapeHtml(clip.title)}</span>
-                            <span class="tv-video-meta">${escapeHtml(clip.participants || "-")}</span>
-                        </button>
+                        <div class="tv-video-item ${isAuthenticated ? "can-delete" : ""}">
+                            <button class="tv-video-thumb" type="button" data-tv-category="${category.key}" data-tv-index="${idx}" data-tv-clip-id="${escapeHtml(clip.id || "")}">
+                                <video muted playsinline preload="metadata" src="${escapeHtml(clip.video_url)}"></video>
+                                <span class="tv-video-title">${escapeHtml(clip.title)}</span>
+                                <span class="tv-video-meta">${escapeHtml(clip.participants || "-")}</span>
+                            </button>
+                            <button class="tv-video-delete" type="button" data-tv-delete-category="${category.key}" data-tv-delete-id="${escapeHtml(clip.id || "")}" aria-label="Eliminar clip">×</button>
+                        </div>
                     `).join("")
                     : '<div class="tv-empty">Todavia no hay videos cargados.</div>';
 
@@ -1800,7 +1847,47 @@
                         openTvPlayer(categoryKey, clipIndex);
                     });
                 });
+
+                const deleteButtons = card.querySelectorAll(".tv-video-delete");
+                deleteButtons.forEach((button) => {
+                    button.addEventListener("click", (event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        safeRun(async () => {
+                            const categoryKey = button.getAttribute("data-tv-delete-category") || "";
+                            const clipId = button.getAttribute("data-tv-delete-id") || "";
+                            await deleteTvClip(categoryKey, clipId);
+                        });
+                    });
+                });
             });
+        }
+
+        async function deleteTvClip(categoryKey, clipId) {
+            if (!isAuthenticated) {
+                throw new Error("Inicia sesion para eliminar clips.");
+            }
+            if (!categoryKey || !clipId) {
+                throw new Error("No se pudo identificar el clip a eliminar.");
+            }
+
+            const confirmed = window.confirm("¿Eliminar este clip de forma permanente?");
+            if (!confirmed) return;
+
+            const response = await fetch(`${API_BASE}/tv-clips`, {
+                method: "DELETE",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ category: categoryKey, clip_id: clipId }),
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || "No se pudo eliminar el clip.");
+            }
+
+            showStatus(data.message || "Clip eliminado correctamente.", "success");
+            await fetchState();
+            renderTvMode();
         }
 
         function openTvPlayer(categoryKey, clipIndex) {
@@ -1839,11 +1926,17 @@
             const counterEl = document.getElementById("tvPlayerCounter");
             const titleEl = document.getElementById("tvPlayerTitle");
             const participantsEl = document.getElementById("tvPlayerParticipants");
+            const deleteCurrentBtn = document.getElementById("deleteCurrentTvClipBtn");
 
             if (categoryEl) categoryEl.textContent = category ? category.label : "Modo TV";
             if (counterEl) counterEl.textContent = `${currentTvPlayerIndex + 1} / ${clips.length}`;
             if (titleEl) titleEl.textContent = clip.title || "Sin titulo";
             if (participantsEl) participantsEl.textContent = `Participan: ${clip.participants || "-"}`;
+            if (deleteCurrentBtn) {
+                deleteCurrentBtn.dataset.tvDeleteCategory = currentTvPlayerCategory;
+                deleteCurrentBtn.dataset.tvDeleteId = clip.id || "";
+                deleteCurrentBtn.style.display = isAuthenticated ? "inline-flex" : "none";
+            }
             if (video) {
                 video.src = clip.video_url || "";
                 video.load();
@@ -3206,6 +3299,13 @@
         safeAddListener("tvPlayerPrevBtn", "click", () => navigateTvPlayer(-1));
         safeAddListener("tvPlayerNextBtn", "click", () => navigateTvPlayer(1));
         safeAddListener("closeTvPlayerBtn", "click", closeTvPlayer);
+        safeAddListener("deleteCurrentTvClipBtn", "click", () => safeRun(async () => {
+            const deleteCurrentBtn = document.getElementById("deleteCurrentTvClipBtn");
+            const categoryKey = deleteCurrentBtn?.dataset.tvDeleteCategory || "";
+            const clipId = deleteCurrentBtn?.dataset.tvDeleteId || "";
+            await deleteTvClip(categoryKey, clipId);
+            closeTvPlayer();
+        }));
         
         const tvModeModal = document.getElementById("tvModeModal");
         if (tvModeModal) {

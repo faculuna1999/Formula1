@@ -310,6 +310,7 @@ def normalize_tv_clips(raw):
             video_url = (item.get("video_url") or "").strip()
             participants = (item.get("participants") or "").strip()
             clip_id = (item.get("id") or "").strip()
+            public_id = (item.get("public_id") or "").strip()
             created_at = (item.get("created_at") or "").strip()
             if not title or not video_url:
                 continue
@@ -321,6 +322,7 @@ def normalize_tv_clips(raw):
                     "title": title[:120],
                     "participants": participants[:160],
                     "video_url": video_url,
+                    "public_id": public_id[:180],
                     "created_at": created_at,
                 }
             )
@@ -391,6 +393,7 @@ def recover_tv_clips_from_cloudinary(force=False):
                     "title": title[:120],
                     "participants": participants[:160],
                     "video_url": secure_url,
+                    "public_id": public_id,
                     "created_at": created_at,
                 }
             )
@@ -452,6 +455,35 @@ def fetch_cloudinary_resources_map(force=False):
     _CLOUDINARY_CACHE["resources"] = resources_map
     _CLOUDINARY_CACHE["expires_at"] = now + 120
     return resources_map
+
+
+def delete_cloudinary_video(public_id):
+    if not cloudinary_is_configured():
+        raise RuntimeError("Cloudinary no esta configurado.")
+
+    timestamp = int(time.time())
+    params_to_sign = {
+        "public_id": public_id,
+        "timestamp": timestamp,
+        "invalidate": "true",
+    }
+    signature = sign_cloudinary_params(params_to_sign)
+    payload = {
+        **params_to_sign,
+        "api_key": CLOUDINARY_API_KEY,
+        "signature": signature,
+    }
+
+    endpoint = f"https://api.cloudinary.com/v1_1/{CLOUDINARY_CLOUD_NAME}/video/destroy"
+    response = requests.post(endpoint, data=payload, timeout=30)
+    if response.status_code >= 400:
+        raise RuntimeError(f"Cloudinary destroy error ({response.status_code}): {response.text[:250]}")
+
+    data = response.json()
+    # Cloudinary may return 'ok' or 'not found'. Both are safe for idempotent delete.
+    result = (data.get("result") or "").strip().lower()
+    if result not in {"ok", "not found"}:
+        raise RuntimeError(f"Cloudinary no pudo eliminar el video: {data}")
 
 
 def default_participants():
@@ -1073,6 +1105,7 @@ def api_create_tv_clip():
         "title": title[:120],
         "participants": participants[:160],
         "video_url": video_url,
+        "public_id": public_id if 'public_id' in locals() else "",
         "created_at": created_at if 'created_at' in locals() else datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
     }
     state["tv_clips"][category].insert(0, new_clip)
@@ -1080,6 +1113,52 @@ def api_create_tv_clip():
 
     save_state(state)
     return jsonify({"status": "success", "message": "Clip cargado correctamente.", "clip": new_clip}), 200
+
+
+@app.route("/api/tv-clips", methods=["DELETE"])
+@app.route(f"{script_name}/api/tv-clips", methods=["DELETE"])
+@login_required
+def api_delete_tv_clip():
+    data = request.get_json(silent=True) or {}
+    category = (data.get("category") or "").strip().lower()
+    clip_id = (data.get("clip_id") or "").strip()
+
+    if category not in TV_VIDEO_CATEGORIES:
+        return jsonify({"status": "error", "message": "Categoria invalida."}), 400
+    if not clip_id:
+        return jsonify({"status": "error", "message": "Falta clip_id."}), 400
+
+    state = load_state()
+    state["tv_clips"] = normalize_tv_clips(state.get("tv_clips", {}))
+    current_list = state["tv_clips"].get(category, [])
+
+    target_index = None
+    target_clip = None
+    for idx, clip in enumerate(current_list):
+        if (clip.get("id") or "").strip() == clip_id:
+            target_index = idx
+            target_clip = clip
+            break
+
+    if target_index is None:
+        return jsonify({"status": "error", "message": "Clip no encontrado."}), 404
+
+    public_id = (target_clip.get("public_id") or "").strip()
+    if public_id and cloudinary_is_configured():
+        try:
+            delete_cloudinary_video(public_id)
+        except Exception as error:
+            logger.warning("No se pudo eliminar clip en Cloudinary (%s): %s", public_id, error)
+            return jsonify({"status": "error", "message": "No se pudo eliminar el video en Cloudinary."}), 400
+
+    current_list.pop(target_index)
+    state["tv_clips"][category] = current_list
+    save_state(state)
+
+    # Invalidate cache to ensure next recovery/list reflects deletion.
+    _CLOUDINARY_TV_CACHE["expires_at"] = 0
+
+    return jsonify({"status": "success", "message": "Clip eliminado correctamente."}), 200
 
 
 @app.route("/api/results", methods=["POST"])
