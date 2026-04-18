@@ -468,30 +468,115 @@
             color: #e5f5ff;
         }
 
-        .tv-video-card {
-            border: 1px solid rgba(57, 215, 255, 0.24);
-            border-radius: 10px;
-            padding: 8px;
-            background: rgba(13, 19, 32, 0.86);
-            display: grid;
-            gap: 6px;
+        .tv-video-strip {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 4px;
         }
 
-        .tv-video-card video {
+        .tv-video-thumb {
+            border: 1px solid rgba(57, 215, 255, 0.22);
+            border-radius: 10px;
+            background: rgba(13, 19, 32, 0.9);
+            padding: 6px;
+            width: 188px;
+            min-width: 188px;
+            text-align: left;
+            cursor: pointer;
+            color: #eef4ff;
+            transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .tv-video-thumb:hover {
+            transform: translateY(-2px);
+            border-color: rgba(57, 215, 255, 0.52);
+            box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35);
+        }
+
+        .tv-video-thumb video {
             width: 100%;
+            aspect-ratio: 16 / 9;
+            object-fit: cover;
             border-radius: 8px;
             background: #000;
-            max-height: 220px;
+            display: block;
+            pointer-events: none;
         }
 
         .tv-video-title {
+            display: block;
+            margin-top: 6px;
             font-weight: 700;
-            font-size: 0.96rem;
+            font-size: 0.9rem;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .tv-video-meta {
+            display: block;
+            margin-top: 2px;
             color: var(--muted);
-            font-size: 0.82rem;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .tv-player-modal {
+            max-width: 960px;
+            width: min(96vw, 960px);
+            border-color: rgba(57, 215, 255, 0.65);
+            background: linear-gradient(160deg, rgba(10, 15, 26, 0.96), rgba(13, 19, 32, 0.98));
+            padding: 18px;
+        }
+
+        .tv-player-wrap {
+            position: relative;
+            border: 1px solid rgba(57, 215, 255, 0.28);
+            border-radius: 12px;
+            overflow: hidden;
+            background: #000;
+            margin-top: 10px;
+        }
+
+        .tv-player-wrap video {
+            width: 100%;
+            max-height: 68vh;
+            display: block;
+            background: #000;
+        }
+
+        .tv-player-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 44px;
+            height: 44px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.36);
+            background: rgba(0, 0, 0, 0.55);
+            color: #fff;
+            font-size: 1.4rem;
+            cursor: pointer;
+            z-index: 2;
+        }
+
+        .tv-player-arrow.prev { left: 10px; }
+        .tv-player-arrow.next { right: 10px; }
+
+        .tv-player-title {
+            margin-top: 10px;
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .tv-player-subtitle {
+            margin-top: 2px;
+            color: var(--muted);
+            font-size: 0.9rem;
         }
 
         .tv-upload-form {
@@ -1429,6 +1514,23 @@
         </div>
     </div>
 
+    <div class="modal-backdrop" id="tvVideoPlayerModal">
+        <div class="modal tv-player-modal">
+            <h2 id="tvPlayerCategory">Modo TV</h2>
+            <p class="small-muted" id="tvPlayerCounter">1/1</p>
+            <div class="tv-player-wrap">
+                <button class="tv-player-arrow prev" id="tvPlayerPrevBtn" type="button" aria-label="Anterior">&#10094;</button>
+                <video id="tvPlayerVideo" controls autoplay playsinline preload="metadata"></video>
+                <button class="tv-player-arrow next" id="tvPlayerNextBtn" type="button" aria-label="Siguiente">&#10095;</button>
+            </div>
+            <div class="tv-player-title" id="tvPlayerTitle">Titulo</div>
+            <div class="tv-player-subtitle" id="tvPlayerParticipants">Participan: -</div>
+            <div class="btn-bar" style="margin-top: 12px;">
+                <button class="secondary" id="closeTvPlayerBtn" type="button">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://unpkg.com/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -1459,8 +1561,14 @@
             "Kick Sauber": "https://media.formula1.com/image/upload/c_fit,h_64/q_auto/v1740000001/common/f1/2025/kicksauber/2025kicksauberlogowhite.webp",
             "Audi": "https://media.formula1.com/image/upload/c_fit,h_64/q_auto/v1740000001/common/f1/2026/audi/2026audilogowhite.webp",
         };
+        const TV_CATEGORIES = [
+            { key: "epic_fails", label: "Epic fails" },
+            { key: "mejores_adelantamientos", label: "Mejores adelantamientos" },
+        ];
         let isAuthenticated = false;
         let currentRaceDetailIndex = null;
+        let currentTvPlayerCategory = "epic_fails";
+        let currentTvPlayerIndex = 0;
 
         // ===================== AUTH =====================
         function updateAuthUI() {
@@ -1629,6 +1737,117 @@
                 .filter((race) => race.has_result)
                 .map((race) => race.race_index)
                 .sort((a, b) => a - b);
+        }
+
+        function getCategoryClips(categoryKey) {
+            return Array.isArray(state.tvClips?.[categoryKey]) ? state.tvClips[categoryKey] : [];
+        }
+
+        function renderTvMode() {
+            const titleEl = document.getElementById("tvModeTitle");
+            if (titleEl) titleEl.textContent = "Modo TV - Liga autitos chocadores";
+            const nextRaceLabel = state.nextRace
+                ? `Proxima: R${state.nextRace.round} - ${state.nextRace.track}`
+                : "Temporada finalizada";
+            const subtitleEl = document.getElementById("tvModeSubtitle");
+            if (subtitleEl) {
+                subtitleEl.textContent = `${state.completedRaces}/${state.totalRaces} carreras completadas | ${nextRaceLabel}`;
+            }
+            renderTvClips();
+        }
+
+        function renderTvClips() {
+            const grid = document.getElementById("tvClipsGrid");
+            if (!grid) return;
+            const counterEl = document.getElementById("tvModeCounter");
+
+            const totalClips = TV_CATEGORIES.reduce((acc, category) => acc + getCategoryClips(category.key).length, 0);
+            if (counterEl) {
+                counterEl.textContent = `${totalClips} clip${totalClips === 1 ? "" : "s"}`;
+            }
+
+            grid.innerHTML = "";
+            TV_CATEGORIES.forEach((category) => {
+                const card = document.createElement("article");
+                card.className = "tv-category-card";
+
+                const clips = getCategoryClips(category.key);
+                const clipsHtml = clips.length
+                    ? clips.map((clip, idx) => `
+                        <button class="tv-video-thumb" type="button" data-tv-category="${category.key}" data-tv-index="${idx}">
+                            <video muted playsinline preload="metadata" src="${escapeHtml(clip.video_url)}"></video>
+                            <span class="tv-video-title">${escapeHtml(clip.title)}</span>
+                            <span class="tv-video-meta">${escapeHtml(clip.participants || "-")}</span>
+                        </button>
+                    `).join("")
+                    : '<div class="tv-empty">Todavia no hay videos cargados.</div>';
+
+                card.innerHTML = `
+                    <h4 class="tv-category-title">${category.label}</h4>
+                    <div class="tv-video-strip">${clipsHtml}</div>
+                `;
+                grid.appendChild(card);
+
+                const thumbs = card.querySelectorAll(".tv-video-thumb");
+                thumbs.forEach((thumb) => {
+                    thumb.addEventListener("click", () => {
+                        const categoryKey = thumb.getAttribute("data-tv-category") || "epic_fails";
+                        const clipIndex = Number(thumb.getAttribute("data-tv-index") || "0");
+                        openTvPlayer(categoryKey, clipIndex);
+                    });
+                });
+            });
+        }
+
+        function openTvPlayer(categoryKey, clipIndex) {
+            const clips = getCategoryClips(categoryKey);
+            if (!clips.length) return;
+
+            currentTvPlayerCategory = categoryKey;
+            currentTvPlayerIndex = Math.min(Math.max(clipIndex, 0), clips.length - 1);
+            renderTvPlayer();
+            document.getElementById("tvVideoPlayerModal")?.classList.add("open");
+        }
+
+        function closeTvPlayer() {
+            const playerModal = document.getElementById("tvVideoPlayerModal");
+            const video = document.getElementById("tvPlayerVideo");
+            if (video) video.pause();
+            if (playerModal) playerModal.classList.remove("open");
+        }
+
+        function navigateTvPlayer(delta) {
+            const clips = getCategoryClips(currentTvPlayerCategory);
+            if (!clips.length) return;
+            const length = clips.length;
+            currentTvPlayerIndex = (currentTvPlayerIndex + delta + length) % length;
+            renderTvPlayer();
+        }
+
+        function renderTvPlayer() {
+            const clips = getCategoryClips(currentTvPlayerCategory);
+            if (!clips.length) return;
+
+            const clip = clips[currentTvPlayerIndex];
+            const category = TV_CATEGORIES.find((item) => item.key === currentTvPlayerCategory);
+            const video = document.getElementById("tvPlayerVideo");
+            const categoryEl = document.getElementById("tvPlayerCategory");
+            const counterEl = document.getElementById("tvPlayerCounter");
+            const titleEl = document.getElementById("tvPlayerTitle");
+            const participantsEl = document.getElementById("tvPlayerParticipants");
+
+            if (categoryEl) categoryEl.textContent = category ? category.label : "Modo TV";
+            if (counterEl) counterEl.textContent = `${currentTvPlayerIndex + 1} / ${clips.length}`;
+            if (titleEl) titleEl.textContent = clip.title || "Sin titulo";
+            if (participantsEl) participantsEl.textContent = `Participan: ${clip.participants || "-"}`;
+            if (video) {
+                video.src = clip.video_url || "";
+                video.load();
+                const playPromise = video.play();
+                if (playPromise && typeof playPromise.catch === "function") {
+                    playPromise.catch(() => {});
+                }
+            }
         }
 
         function getTrend(driverName) {
@@ -3035,11 +3254,21 @@
         safeAddListener("tvModeBtn", "click", openTvMode);
         safeAddListener("closeTvModeBtn", "click", closeTvMode);
         safeAddListener("tvUploadForm", "submit", (e) => safeRun(() => saveTvClip(e)));
+        safeAddListener("tvPlayerPrevBtn", "click", () => navigateTvPlayer(-1));
+        safeAddListener("tvPlayerNextBtn", "click", () => navigateTvPlayer(1));
+        safeAddListener("closeTvPlayerBtn", "click", closeTvPlayer);
         
         const tvModeModal = document.getElementById("tvModeModal");
         if (tvModeModal) {
             tvModeModal.addEventListener("click", (e) => {
                 if (e.target === e.currentTarget) closeTvMode();
+            });
+        }
+
+        const tvVideoPlayerModal = document.getElementById("tvVideoPlayerModal");
+        if (tvVideoPlayerModal) {
+            tvVideoPlayerModal.addEventListener("click", (e) => {
+                if (e.target === e.currentTarget) closeTvPlayer();
             });
         }
 
