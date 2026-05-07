@@ -10,9 +10,17 @@ services:
         value: production
       - key: SCRIPT_NAME
         value: /facu-demo
+      - key: REMOTE_STATE_SYNC
+        value: true
       - key: ADMIN_USER
         value: admin
       - key: ADMIN_PASSWORD
         sync: false
       - key: SECRET_KEY
         generateValue: true
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false

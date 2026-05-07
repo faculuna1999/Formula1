@@ -11,6 +11,7 @@ import time
 from datetime import date, datetime, timedelta
 from functools import wraps
 from pathlib import Path
+from urllib.parse import quote
 
 import requests
 from flask import Flask, jsonify, render_template, request, session
@@ -37,10 +38,12 @@ CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME", "").strip()
 CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY", "").strip()
 CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET", "").strip()
 COMISARIO_PUBLIC_ID = "facu-demo/comisario"
+STATE_PUBLIC_ID = "facu-demo/state/season"
 TV_VIDEO_CATEGORIES = {
     "epic_fails": "Epic fails",
     "mejores_adelantamientos": "Mejores adelantamientos",
 }
+REMOTE_STATE_SYNC_ENABLED = os.getenv("REMOTE_STATE_SYNC", "true").strip().lower() not in {"0", "false", "no"}
 
 _CLOUDINARY_CACHE = {
     "expires_at": 0,
@@ -156,6 +159,10 @@ TEAM_ALIASES = {
 
 def cloudinary_is_configured():
     return bool(CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET)
+
+
+def remote_state_is_configured():
+    return REMOTE_STATE_SYNC_ENABLED and cloudinary_is_configured()
 
 
 def slugify_identifier(value):
@@ -294,6 +301,53 @@ def upload_binary_to_cloudinary(binary, mime_type, filename, public_id, resource
         raise RuntimeError("Cloudinary no devolvio secure_url.")
 
     return secure_url.strip()
+
+
+def upload_state_to_cloudinary(state):
+    payload = json.dumps(state, indent=2).encode("utf-8")
+    upload_binary_to_cloudinary(
+        binary=payload,
+        mime_type="application/json",
+        filename="season.json",
+        public_id=STATE_PUBLIC_ID,
+        resource_type="raw",
+    )
+
+
+def load_state_from_cloudinary():
+    if not remote_state_is_configured():
+        return None
+
+    resource_url = (
+        f"https://api.cloudinary.com/v1_1/{CLOUDINARY_CLOUD_NAME}"
+        f"/resources/raw/upload/{quote(STATE_PUBLIC_ID, safe='')}"
+    )
+    response = requests.get(
+        resource_url,
+        auth=(CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET),
+        timeout=30,
+    )
+    if response.status_code == 404:
+        return None
+    if response.status_code >= 400:
+        logger.warning("No se pudo consultar el estado remoto en Cloudinary: %s", response.text[:250])
+        return None
+
+    secure_url = (response.json().get("secure_url") or "").strip()
+    if not secure_url:
+        logger.warning("Cloudinary no devolvio secure_url para el estado remoto.")
+        return None
+
+    download_response = requests.get(secure_url, timeout=30)
+    if download_response.status_code >= 400:
+        logger.warning("No se pudo descargar el estado remoto desde Cloudinary: %s", download_response.text[:250])
+        return None
+
+    try:
+        return download_response.json()
+    except json.JSONDecodeError:
+        logger.warning("El estado remoto de Cloudinary no es JSON valido.")
+        return None
 
 
 def normalize_tv_clips(raw):
@@ -533,9 +587,15 @@ def build_default_state():
     }
 
 
-def save_state(state):
+def write_local_state(state):
     DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
     DATA_FILE.write_text(json.dumps(state, indent=2), encoding="utf-8")
+
+
+def save_state(state):
+    write_local_state(state)
+    if remote_state_is_configured():
+        upload_state_to_cloudinary(state)
 
 
 def load_seed_state():
@@ -551,18 +611,20 @@ def load_seed_state():
 
 def load_state():
     if not DATA_FILE.exists():
-        state = load_seed_state() or build_default_state()
-        if cloudinary_is_configured():
+        state = load_state_from_cloudinary()
+        if state is None:
+            state = load_seed_state() or build_default_state()
+        if cloudinary_is_configured() and not any(state.get("tv_clips", {}).get(category) for category in TV_VIDEO_CATEGORIES):
             state["tv_clips"] = recover_tv_clips_from_cloudinary()
-        save_state(state)
+        write_local_state(state)
         return state
 
     try:
         state = json.loads(DATA_FILE.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         logger.warning("Archivo de estado invalido. Se recrea estado por defecto.")
-        state = load_seed_state() or build_default_state()
-        save_state(state)
+        state = load_state_from_cloudinary() or load_seed_state() or build_default_state()
+        write_local_state(state)
         return state
 
     participants = state.get("participants", [])

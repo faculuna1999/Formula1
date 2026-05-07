@@ -93,8 +93,8 @@ Importante sobre persistencia en Render gratis:
 - La URL `onrender.com` es estable y gratuita.
 - El filesystem del servicio no es persistente.
 - Este repo incluye `data/season.seed.json` para que el deploy arranque con un estado inicial versionado.
-- Los cambios hechos en producción sobre `data/season.json` pueden perderse si Render reinicia o redeploya el servicio.
-- Si querés persistencia real en producción, el siguiente paso sería mover el estado a una base de datos o almacenamiento externo.
+- Si no configuras almacenamiento externo, los cambios hechos en producción sobre `data/season.json` pueden perderse si Render reinicia o redeploya el servicio.
+- La app ahora puede sincronizar el estado completo del campeonato con Cloudinary y recuperarlo al arrancar.
 
 1. Subi estos cambios a GitHub.
 2. En Render: `New +` -> `Blueprint`.
@@ -113,9 +113,9 @@ Notas:
 - El comando de arranque usa Gunicorn (`gunicorn --bind 0.0.0.0:$PORT app:app`).
 - Si el servicio reinicia, Render volvera a arrancar desde el estado seed versionado si no conserva `data/season.json`.
 
-### Persistir fotos con Cloudinary (recomendado)
+### Persistir estado y fotos con Cloudinary (recomendado)
 
-Para evitar perder fotos de pilotos/comisario en Render Free, configura Cloudinary:
+Para evitar perder resultados, equipos, perfiles, fotos y clips en Render Free, configura Cloudinary:
 
 1. Crea una cuenta gratuita en Cloudinary.
 2. Copia estos 3 valores desde el dashboard de Cloudinary.
@@ -123,10 +123,13 @@ Para evitar perder fotos de pilotos/comisario en Render Free, configura Cloudina
   - `CLOUDINARY_CLOUD_NAME`
   - `CLOUDINARY_API_KEY`
   - `CLOUDINARY_API_SECRET`
+  - `REMOTE_STATE_SYNC=true`
 4. Guarda variables y redeploya el servicio.
 
 Con esto:
 
+- El estado completo del campeonato se sube como JSON a Cloudinary cada vez que guardas cambios.
+- Si Render reinicia la instancia y `data/season.json` no existe, la app recupera el ultimo estado remoto.
 - Las fotos nuevas se suben a Cloudinary.
 - La app recupera fotos desde Cloudinary aunque Render reinicie instancia.
 
