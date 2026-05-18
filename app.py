@@ -753,31 +753,35 @@ def build_schedule(state):
     return races
 
 
-def validate_classification(classification, participants):
+def validate_classification(classification, participants, allow_partial=False):
     if not isinstance(classification, list):
         return "La clasificacion debe ser una lista de nombres."
 
     cleaned = [item.strip() for item in classification if isinstance(item, str)]
     num_participants = len(participants)
-    if len(cleaned) != num_participants:
+    if not cleaned:
+        return "La clasificacion debe incluir al menos una posicion."
+
+    if not allow_partial and len(cleaned) != num_participants:
         return f"La clasificacion debe tener exactamente {num_participants} posiciones."
+
+    if allow_partial and len(cleaned) > num_participants:
+        return f"La clasificacion no puede tener mas de {num_participants} posiciones."
 
     if any(not name for name in cleaned):
         return "La clasificacion contiene nombres vacios."
 
     cleaned_set = set(cleaned)
     participants_set = set(participants)
-    if cleaned_set != participants_set:
-        missing = sorted(participants_set - cleaned_set)
+    if not cleaned_set.issubset(participants_set):
         extras = sorted(cleaned_set - participants_set)
-        message_parts = []
-        if missing:
-            message_parts.append(f"Faltan participantes: {', '.join(missing)}")
-        if extras:
-            message_parts.append(f"Nombres no registrados: {', '.join(extras)}")
-        return "; ".join(message_parts)
+        return f"Nombres no registrados: {', '.join(extras)}"
 
-    if len(cleaned_set) != num_participants:
+    if not allow_partial and cleaned_set != participants_set:
+        missing = sorted(participants_set - cleaned_set)
+        return f"Faltan participantes: {', '.join(missing)}"
+
+    if len(cleaned_set) != len(cleaned):
         return "Hay nombres repetidos en la clasificacion."
 
     return None
@@ -1279,7 +1283,7 @@ def api_set_result():
             if driver_name not in state["participants"]:
                 return jsonify({"status": "error", "message": f"Piloto no registrado en qualy: {driver_name}"}), 400
     if qualifying is not None:
-        q_err = validate_classification(qualifying, state["participants"])
+        q_err = validate_classification(qualifying, state["participants"], allow_partial=True)
         if q_err:
             return jsonify({"status": "error", "message": f"Clasificacion (qualy): {q_err}"}), 400
         state["qualifying"][str(race_index)] = qualifying
@@ -1321,9 +1325,17 @@ def api_set_result():
                 race_details[driver_name]["status"] = "DNS"
     
     if classification is not None:
-        r_err = validate_classification(classification, state["participants"])
+        r_err = validate_classification(classification, state["participants"], allow_partial=True)
         if r_err:
             return jsonify({"status": "error", "message": f"Resultado de carrera: {r_err}"}), 400
+
+        classified_drivers = set(classification)
+        for driver_name in state["participants"]:
+            if driver_name not in classified_drivers:
+                if driver_name not in race_details:
+                    race_details[driver_name] = {}
+                race_details[driver_name]["status"] = "DNS"
+
         state["results"][str(race_index)] = classification
     if race_details:
         state["race_details"][str(race_index)] = race_details
