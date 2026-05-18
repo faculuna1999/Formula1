@@ -1333,6 +1333,14 @@
                     <input type="date" id="raceDateInput">
                 </div>
 
+                <div class="row">
+                    <label class="small-muted">Participantes en la carrera (deja en blanco = todos corren)</label>
+                    <div id="participantsCheckboxContainer" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:8px;padding:8px;border:1px solid #ccc;border-radius:4px;background-color:#f9f9f9">
+                        <!-- Checkboxes will be populated by JavaScript -->
+                    </div>
+                    <p class="small-muted">Selecciona quién corrio. Los que no selecciones aparecerán como DNS en el resultado.</p>
+                </div>
+
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
                     <div>
                         <label class="small-muted">Clasificacion / Qualy (pos 1→20)</label>
@@ -3222,7 +3230,49 @@
             updateAuthUI();
         }
 
+
+        function renderParticipantCheckboxes(raceIndex) {
+            const container = document.getElementById("participantsCheckboxContainer");
+            if (!container || !state.participants) return;
+            
+            container.innerHTML = "";
+            const raceDetails = state.raceDetails[String(raceIndex)] || {};
+            
+            state.participants.forEach(driver => {
+                const checkbox = document.createElement("label");
+                checkbox.style.display = "flex";
+                checkbox.style.alignItems = "center";
+                checkbox.style.gap = "4px";
+                checkbox.style.cursor = "pointer";
+                
+                const input = document.createElement("input");
+                input.type = "checkbox";
+                input.value = driver;
+                input.dataset.driver = driver;
+                input.className = "participant-checkbox";
+                
+                // Pre-check if driver raced before or by default all should be checked
+                const driverDetails = raceDetails[driver];
+                const isChecked = !driverDetails || driverDetails.status !== "DNS";
+                input.checked = isChecked;
+                
+                const label = document.createElement("span");
+                label.textContent = driver;
+                label.style.fontSize = "14px";
+                
+                checkbox.appendChild(input);
+                checkbox.appendChild(label);
+                container.appendChild(checkbox);
+            });
+        }
+        
+        function getSelectedParticipants() {
+            const checkboxes = document.querySelectorAll(".participant-checkbox:checked");
+            return Array.from(checkboxes).map(cb => cb.dataset.driver);
+        }
+
         function selectRace(raceIndex) {
+
             const select = document.getElementById("raceSelect");
             select.value = String(raceIndex);
             const race = state.schedule.find(r => r.race_index === raceIndex);
@@ -3241,6 +3291,7 @@
                 : "";
 
             renderRaceDetails(raceIndex);
+            renderParticipantCheckboxes(raceIndex);
             applyRaceTheme(raceIndex);
 
             if (isAuthenticated) {
@@ -3285,6 +3336,13 @@
 
             const payload = { race_index: raceIndex };
             if (dateValue) payload.date = dateValue;
+            
+            // Add participants_in_race if any driver was deselected
+            const selectedParticipants = getSelectedParticipants();
+            if (state.participants && selectedParticipants.length > 0 && selectedParticipants.length < state.participants.length) {
+                payload.participants_in_race = selectedParticipants;
+            }
+            
             if (qualifyingText) {
                 const parsedQualifying = parseDetailedClassification(qualifyingText, "qualifying");
                 payload.qualifying = parsedQualifying.orderedNames;
