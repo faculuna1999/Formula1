@@ -3152,6 +3152,36 @@
             showStatus(`Imagen de ${label} procesada. Revisa y corrige si hace falta.`, "success");
         }
 
+        function refreshDriverSelectOptions(containerId, selectClass) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            const selects = [...container.querySelectorAll(selectClass)];
+            const allDrivers = state.participants || [];
+
+            selects.forEach((select) => {
+                const current = select.value || "";
+                const selectedByOthers = new Set(
+                    selects
+                        .filter((other) => other !== select)
+                        .map((other) => other.value)
+                        .filter(Boolean)
+                );
+
+                const availableDrivers = allDrivers.filter((driver) => !selectedByOthers.has(driver) || driver === current);
+                const optionsHtml = ['<option value="">-</option>']
+                    .concat(availableDrivers.map((driver) => `<option value="${driver}">${driver}</option>`))
+                    .join("");
+
+                select.innerHTML = optionsHtml;
+                if (current && availableDrivers.includes(current)) {
+                    select.value = current;
+                } else {
+                    select.value = "";
+                }
+            });
+        }
+
         function renderResultInputRows(raceIndex) {
             const qualifyingContainer = document.getElementById("qualifyingRowsContainer");
             const raceContainer = document.getElementById("raceRowsContainer");
@@ -3167,54 +3197,47 @@
             const rData = state.results[String(raceIndex)] || [];
             const rDetails = state.raceDetails[String(raceIndex)] || {};
 
-            const qPosMap = new Map();
-            qData.forEach((name, idx) => qPosMap.set(name, idx + 1));
-            const rPosMap = new Map();
-            rData.forEach((name, idx) => rPosMap.set(name, idx + 1));
-
-            const positionOptions = ['<option value="">-</option>'];
             for (let pos = 1; pos <= total; pos += 1) {
-                positionOptions.push(`<option value="${pos}">${pos}</option>`);
-            }
-            const optionsHtml = positionOptions.join("");
-
-            participants.forEach((driver) => {
-                const qMeta = qDetails[driver] || {};
-                const rMeta = rDetails[driver] || {};
-                const qPosition = qMeta.position ?? qPosMap.get(driver) ?? "";
-                const rPosition = rMeta.position ?? rPosMap.get(driver) ?? "";
+                const qDriver = qData[pos - 1] || "";
+                const qMeta = qDriver ? (qDetails[qDriver] || {}) : {};
                 const qTime = qMeta.time || "";
+
+                const rDriver = rData[pos - 1] || "";
+                const rMeta = rDriver ? (rDetails[rDriver] || {}) : {};
                 const rTime = rMeta.best_time || "";
                 const rStatus = (rMeta.status || "FINISHED").toUpperCase();
 
                 const qRow = document.createElement("div");
                 qRow.className = "result-input-row";
-                qRow.dataset.driver = driver;
+                qRow.dataset.position = String(pos);
                 qRow.style.display = "grid";
-                qRow.style.gridTemplateColumns = "1.4fr 0.8fr 1fr";
+                qRow.style.gridTemplateColumns = "0.5fr 1.4fr 1fr";
                 qRow.style.gap = "8px";
                 qRow.style.alignItems = "center";
                 qRow.innerHTML = `
-                    <span class="small-muted" style="font-size:0.9rem">${driver}</span>
-                    <select class="result-q-position">${optionsHtml}</select>
+                    <span class="small-muted" style="font-size:0.9rem">${pos}</span>
+                    <select class="result-q-driver"></select>
                     <input class="result-q-time" type="text" placeholder="Tiempo qualy (ej: 1:23.456)">
                 `;
-                const qPosEl = qRow.querySelector(".result-q-position");
+                const qDriverEl = qRow.querySelector(".result-q-driver");
                 const qTimeEl = qRow.querySelector(".result-q-time");
-                qPosEl.value = qPosition ? String(qPosition) : "";
+                qDriverEl.value = qDriver;
                 qTimeEl.value = qTime;
+                qDriverEl.addEventListener("change", () => {
+                    refreshDriverSelectOptions("qualifyingRowsContainer", ".result-q-driver");
+                });
                 qualifyingContainer.appendChild(qRow);
 
                 const rRow = document.createElement("div");
                 rRow.className = "result-input-row";
-                rRow.dataset.driver = driver;
+                rRow.dataset.position = String(pos);
                 rRow.style.display = "grid";
-                rRow.style.gridTemplateColumns = "1.2fr 0.8fr 1fr 1fr";
+                rRow.style.gridTemplateColumns = "0.5fr 1.2fr 1fr 1fr";
                 rRow.style.gap = "8px";
                 rRow.style.alignItems = "center";
                 rRow.innerHTML = `
-                    <span class="small-muted" style="font-size:0.9rem">${driver}</span>
-                    <select class="result-r-position">${optionsHtml}</select>
+                    <span class="small-muted" style="font-size:0.9rem">${pos}</span>
+                    <select class="result-r-driver"></select>
                     <input class="result-r-time" type="text" placeholder="Tiempo carrera (ej: 1:23.456)">
                     <select class="result-r-status">
                         <option value="FINISHED">FINISHED</option>
@@ -3222,63 +3245,91 @@
                         <option value="DNS">DNS</option>
                     </select>
                 `;
-                const rPosEl = rRow.querySelector(".result-r-position");
+                const rDriverEl = rRow.querySelector(".result-r-driver");
                 const rTimeEl = rRow.querySelector(".result-r-time");
                 const rStatusEl = rRow.querySelector(".result-r-status");
-                rPosEl.value = rPosition ? String(rPosition) : "";
+                rDriverEl.value = rDriver;
                 rTimeEl.value = rTime;
                 rStatusEl.value = ["FINISHED", "DNF", "DNS"].includes(rStatus) ? rStatus : "FINISHED";
+                rDriverEl.addEventListener("change", () => {
+                    refreshDriverSelectOptions("raceRowsContainer", ".result-r-driver");
+                });
                 raceContainer.appendChild(rRow);
+            }
+
+            refreshDriverSelectOptions("qualifyingRowsContainer", ".result-q-driver");
+            refreshDriverSelectOptions("raceRowsContainer", ".result-r-driver");
+
+            // Restore preselected values after options are refreshed.
+            [...qualifyingContainer.querySelectorAll(".result-input-row")].forEach((row, idx) => {
+                const select = row.querySelector(".result-q-driver");
+                if (select && qData[idx]) select.value = qData[idx];
             });
+            [...raceContainer.querySelectorAll(".result-input-row")].forEach((row, idx) => {
+                const select = row.querySelector(".result-r-driver");
+                if (select && rData[idx]) select.value = rData[idx];
+            });
+
+            refreshDriverSelectOptions("qualifyingRowsContainer", ".result-q-driver");
+            refreshDriverSelectOptions("raceRowsContainer", ".result-r-driver");
         }
 
         function parseResultRows(kind) {
             const containerId = kind === "qualifying" ? "qualifyingRowsContainer" : "raceRowsContainer";
-            const positionClass = kind === "qualifying" ? ".result-q-position" : ".result-r-position";
+            const driverClass = kind === "qualifying" ? ".result-q-driver" : ".result-r-driver";
             const timeClass = kind === "qualifying" ? ".result-q-time" : ".result-r-time";
             const rows = [...document.querySelectorAll(`#${containerId} .result-input-row`)];
 
             const entries = [];
             const details = {};
-            const usedPositions = new Set();
+            const usedDrivers = new Set();
+
+            const selectedDrivers = rows.map((row) => (row.querySelector(driverClass)?.value || "").trim());
+            const lastFilledIdx = selectedDrivers.map((value, idx) => (value ? idx : -1)).reduce((acc, value) => Math.max(acc, value), -1);
+            if (lastFilledIdx >= 0) {
+                for (let idx = 0; idx <= lastFilledIdx; idx += 1) {
+                    if (!selectedDrivers[idx]) {
+                        throw new Error(`Completa los pilotos en orden: falta la posicion ${idx + 1}.`);
+                    }
+                }
+            }
 
             rows.forEach((row) => {
-                const driver = row.dataset.driver || "";
-                if (!driver) return;
-
-                const posValue = Number(row.querySelector(positionClass)?.value || "0");
+                const posValue = Number(row.dataset.position || "0");
+                const driver = (row.querySelector(driverClass)?.value || "").trim();
                 const timeValue = (row.querySelector(timeClass)?.value || "").trim();
 
                 if (kind === "qualifying") {
-                    if (!posValue && !timeValue) return;
-                    if (!posValue) {
-                        throw new Error(`Completa la posicion de qualy para ${driver}.`);
+                    if (!driver && !timeValue) return;
+                    if (!driver) {
+                        throw new Error(`Selecciona piloto en qualy para la posicion ${posValue}.`);
                     }
-                    if (usedPositions.has(posValue)) {
-                        throw new Error(`Posicion de qualy repetida: ${posValue}.`);
+                    if (usedDrivers.has(driver)) {
+                        throw new Error(`Piloto repetido en qualy: ${driver}.`);
                     }
-                    usedPositions.add(posValue);
+                    usedDrivers.add(driver);
                     entries.push({ name: driver, position: posValue });
                     details[driver] = { position: posValue, time: timeValue };
                     return;
                 }
 
                 const statusValue = (row.querySelector(".result-r-status")?.value || "FINISHED").toUpperCase();
-                const hasInput = Boolean(posValue || timeValue || statusValue !== "FINISHED");
+                const hasInput = Boolean(driver || timeValue || statusValue !== "FINISHED");
                 if (!hasInput) return;
+
+                if (!driver) {
+                    throw new Error(`Selecciona piloto en carrera para la posicion ${posValue}.`);
+                }
+                if (usedDrivers.has(driver)) {
+                    throw new Error(`Piloto repetido en carrera: ${driver}.`);
+                }
+                usedDrivers.add(driver);
 
                 if (statusValue === "DNS") {
                     details[driver] = { status: "DNS", best_time: timeValue };
                     return;
                 }
 
-                if (!posValue) {
-                    throw new Error(`Completa la posicion de carrera para ${driver}.`);
-                }
-                if (usedPositions.has(posValue)) {
-                    throw new Error(`Posicion de carrera repetida: ${posValue}.`);
-                }
-                usedPositions.add(posValue);
                 entries.push({ name: driver, position: posValue });
                 details[driver] = {
                     position: posValue,
@@ -3296,26 +3347,26 @@
 
         function fillTemplate() {
             const participants = state.participants || [];
-            participants.forEach((driver, idx) => {
-                const qRow = document.querySelector(`#qualifyingRowsContainer .result-input-row[data-driver="${driver}"]`);
-                const rRow = document.querySelector(`#raceRowsContainer .result-input-row[data-driver="${driver}"]`);
-                const targetPos = String(idx + 1);
+            const qRows = [...document.querySelectorAll("#qualifyingRowsContainer .result-input-row")];
+            const rRows = [...document.querySelectorAll("#raceRowsContainer .result-input-row")];
 
-                if (qRow) {
-                    const qPos = qRow.querySelector(".result-q-position");
-                    const qTime = qRow.querySelector(".result-q-time");
-                    if (qPos) qPos.value = targetPos;
-                    if (qTime) qTime.value = "";
-                }
-                if (rRow) {
-                    const rPos = rRow.querySelector(".result-r-position");
-                    const rTime = rRow.querySelector(".result-r-time");
-                    const rStatus = rRow.querySelector(".result-r-status");
-                    if (rPos) rPos.value = targetPos;
-                    if (rTime) rTime.value = "";
-                    if (rStatus) rStatus.value = "FINISHED";
-                }
+            qRows.forEach((row, idx) => {
+                const qDriver = row.querySelector(".result-q-driver");
+                const qTime = row.querySelector(".result-q-time");
+                if (qDriver) qDriver.value = participants[idx] || "";
+                if (qTime) qTime.value = "";
             });
+            rRows.forEach((row, idx) => {
+                const rDriver = row.querySelector(".result-r-driver");
+                const rTime = row.querySelector(".result-r-time");
+                const rStatus = row.querySelector(".result-r-status");
+                if (rDriver) rDriver.value = participants[idx] || "";
+                if (rTime) rTime.value = "";
+                if (rStatus) rStatus.value = "FINISHED";
+            });
+
+            refreshDriverSelectOptions("qualifyingRowsContainer", ".result-q-driver");
+            refreshDriverSelectOptions("raceRowsContainer", ".result-r-driver");
         }
 
         async function fetchState() {
@@ -3523,12 +3574,14 @@
                 tessedit_pageseg_mode: window.Tesseract.PSM.SINGLE_BLOCK,
             });
             const ranking = extractRankingFromOcrText(result.data.text || "");
-            ranking.forEach((name, idx) => {
-                const row = document.querySelector(`#qualifyingRowsContainer .result-input-row[data-driver="${name}"]`);
-                if (!row) return;
-                const pos = row.querySelector(".result-q-position");
-                if (pos) pos.value = String(idx + 1);
+            const rows = [...document.querySelectorAll("#qualifyingRowsContainer .result-input-row")];
+            rows.forEach((row, idx) => {
+                const driver = row.querySelector(".result-q-driver");
+                const time = row.querySelector(".result-q-time");
+                if (driver) driver.value = ranking[idx] || "";
+                if (time && !ranking[idx]) time.value = "";
             });
+            refreshDriverSelectOptions("qualifyingRowsContainer", ".result-q-driver");
             showStatus("Imagen de qualy procesada. Revisa y corrige si hace falta.", "success");
             e.target.value = "";
         }));
@@ -3544,14 +3597,16 @@
                 tessedit_pageseg_mode: window.Tesseract.PSM.SINGLE_BLOCK,
             });
             const ranking = extractRankingFromOcrText(result.data.text || "");
-            ranking.forEach((name, idx) => {
-                const row = document.querySelector(`#raceRowsContainer .result-input-row[data-driver="${name}"]`);
-                if (!row) return;
-                const pos = row.querySelector(".result-r-position");
+            const rows = [...document.querySelectorAll("#raceRowsContainer .result-input-row")];
+            rows.forEach((row, idx) => {
+                const driver = row.querySelector(".result-r-driver");
                 const status = row.querySelector(".result-r-status");
-                if (pos) pos.value = String(idx + 1);
-                if (status) status.value = "FINISHED";
+                const time = row.querySelector(".result-r-time");
+                if (driver) driver.value = ranking[idx] || "";
+                if (status) status.value = ranking[idx] ? "FINISHED" : "FINISHED";
+                if (time && !ranking[idx]) time.value = "";
             });
+            refreshDriverSelectOptions("raceRowsContainer", ".result-r-driver");
             showStatus("Imagen de carrera procesada. Revisa y corrige si hace falta.", "success");
             e.target.value = "";
         }));
