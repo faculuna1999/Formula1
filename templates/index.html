@@ -1341,24 +1341,22 @@
                     <p class="small-muted">Selecciona quién corrio. Los que no selecciones aparecerán como DNS en el resultado.</p>
                 </div>
 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
-                    <div>
-                        <label class="small-muted">Clasificacion / Qualy (pos 1→20)</label>
-                        <textarea id="qualifyingInput" placeholder="1) Participante 1&#10;2) Participante 2&#10;...&#10;20) Participante 20" style="min-height:180px"></textarea>
+                <div style="display:grid;gap:12px;margin-top:8px">
+                    <div style="border:1px solid rgba(116, 146, 214, 0.48);border-radius:10px;padding:10px;background:rgba(11,16,28,0.72)">
+                        <label class="small-muted">Clasificacion / Qualy por participante</label>
+                        <div id="qualifyingRowsContainer" style="display:grid;gap:8px;margin-top:8px"></div>
                         <div class="button-bar" style="margin-top:8px;justify-content:flex-start">
                             <button class="secondary" id="uploadQualyBtn" type="button">Cargar imagen de qualy</button>
                             <input id="qualifyingImageInput" type="file" accept="image/*" style="display:none">
                         </div>
-                        <p class="small-muted">Se autocompleta y despues podes editar manualmente.</p>
                     </div>
-                    <div>
-                        <label class="small-muted">Resultado de Carrera (pos 1→20)</label>
-                        <textarea id="classificationInput" placeholder="1) Participante 1&#10;2) Participante 2&#10;...&#10;20) Participante 20" style="min-height:180px"></textarea>
+                    <div style="border:1px solid rgba(116, 146, 214, 0.48);border-radius:10px;padding:10px;background:rgba(11,16,28,0.72)">
+                        <label class="small-muted">Resultado de carrera por participante</label>
+                        <div id="raceRowsContainer" style="display:grid;gap:8px;margin-top:8px"></div>
                         <div class="button-bar" style="margin-top:8px;justify-content:flex-start">
                             <button class="secondary" id="uploadRaceBtn" type="button">Cargar imagen de carrera</button>
                             <input id="raceImageInput" type="file" accept="image/*" style="display:none">
                         </div>
-                        <p class="small-muted">Se autocompleta y despues podes editar manualmente.</p>
                     </div>
                 </div>
 
@@ -3162,10 +3160,170 @@
             showStatus(`Imagen de ${label} procesada. Revisa y corrige si hace falta.`, "success");
         }
 
+        function renderResultInputRows(raceIndex) {
+            const qualifyingContainer = document.getElementById("qualifyingRowsContainer");
+            const raceContainer = document.getElementById("raceRowsContainer");
+            if (!qualifyingContainer || !raceContainer) return;
+
+            qualifyingContainer.innerHTML = "";
+            raceContainer.innerHTML = "";
+
+            const participants = state.participants || [];
+            const total = participants.length;
+            const qData = state.qualifying[String(raceIndex)] || [];
+            const qDetails = state.qualifyingDetails[String(raceIndex)] || {};
+            const rData = state.results[String(raceIndex)] || [];
+            const rDetails = state.raceDetails[String(raceIndex)] || {};
+
+            const qPosMap = new Map();
+            qData.forEach((name, idx) => qPosMap.set(name, idx + 1));
+            const rPosMap = new Map();
+            rData.forEach((name, idx) => rPosMap.set(name, idx + 1));
+
+            const positionOptions = ['<option value="">-</option>'];
+            for (let pos = 1; pos <= total; pos += 1) {
+                positionOptions.push(`<option value="${pos}">${pos}</option>`);
+            }
+            const optionsHtml = positionOptions.join("");
+
+            participants.forEach((driver) => {
+                const qMeta = qDetails[driver] || {};
+                const rMeta = rDetails[driver] || {};
+                const qPosition = qMeta.position ?? qPosMap.get(driver) ?? "";
+                const rPosition = rMeta.position ?? rPosMap.get(driver) ?? "";
+                const qTime = qMeta.time || "";
+                const rTime = rMeta.best_time || "";
+                const rStatus = (rMeta.status || "FINISHED").toUpperCase();
+
+                const qRow = document.createElement("div");
+                qRow.className = "result-input-row";
+                qRow.dataset.driver = driver;
+                qRow.style.display = "grid";
+                qRow.style.gridTemplateColumns = "1.4fr 0.8fr 1fr";
+                qRow.style.gap = "8px";
+                qRow.style.alignItems = "center";
+                qRow.innerHTML = `
+                    <span class="small-muted" style="font-size:0.9rem">${driver}</span>
+                    <select class="result-q-position">${optionsHtml}</select>
+                    <input class="result-q-time" type="text" placeholder="Tiempo qualy (ej: 1:23.456)">
+                `;
+                const qPosEl = qRow.querySelector(".result-q-position");
+                const qTimeEl = qRow.querySelector(".result-q-time");
+                qPosEl.value = qPosition ? String(qPosition) : "";
+                qTimeEl.value = qTime;
+                qualifyingContainer.appendChild(qRow);
+
+                const rRow = document.createElement("div");
+                rRow.className = "result-input-row";
+                rRow.dataset.driver = driver;
+                rRow.style.display = "grid";
+                rRow.style.gridTemplateColumns = "1.2fr 0.8fr 1fr 1fr";
+                rRow.style.gap = "8px";
+                rRow.style.alignItems = "center";
+                rRow.innerHTML = `
+                    <span class="small-muted" style="font-size:0.9rem">${driver}</span>
+                    <select class="result-r-position">${optionsHtml}</select>
+                    <input class="result-r-time" type="text" placeholder="Tiempo carrera (ej: 1:23.456)">
+                    <select class="result-r-status">
+                        <option value="FINISHED">FINISHED</option>
+                        <option value="DNF">DNF</option>
+                        <option value="DNS">DNS</option>
+                    </select>
+                `;
+                const rPosEl = rRow.querySelector(".result-r-position");
+                const rTimeEl = rRow.querySelector(".result-r-time");
+                const rStatusEl = rRow.querySelector(".result-r-status");
+                rPosEl.value = rPosition ? String(rPosition) : "";
+                rTimeEl.value = rTime;
+                rStatusEl.value = ["FINISHED", "DNF", "DNS"].includes(rStatus) ? rStatus : "FINISHED";
+                raceContainer.appendChild(rRow);
+            });
+        }
+
+        function parseResultRows(kind) {
+            const containerId = kind === "qualifying" ? "qualifyingRowsContainer" : "raceRowsContainer";
+            const positionClass = kind === "qualifying" ? ".result-q-position" : ".result-r-position";
+            const timeClass = kind === "qualifying" ? ".result-q-time" : ".result-r-time";
+            const rows = [...document.querySelectorAll(`#${containerId} .result-input-row`)];
+
+            const entries = [];
+            const details = {};
+            const usedPositions = new Set();
+
+            rows.forEach((row) => {
+                const driver = row.dataset.driver || "";
+                if (!driver) return;
+
+                const posValue = Number(row.querySelector(positionClass)?.value || "0");
+                const timeValue = (row.querySelector(timeClass)?.value || "").trim();
+
+                if (kind === "qualifying") {
+                    if (!posValue && !timeValue) return;
+                    if (!posValue) {
+                        throw new Error(`Completa la posicion de qualy para ${driver}.`);
+                    }
+                    if (usedPositions.has(posValue)) {
+                        throw new Error(`Posicion de qualy repetida: ${posValue}.`);
+                    }
+                    usedPositions.add(posValue);
+                    entries.push({ name: driver, position: posValue });
+                    details[driver] = { position: posValue, time: timeValue };
+                    return;
+                }
+
+                const statusValue = (row.querySelector(".result-r-status")?.value || "FINISHED").toUpperCase();
+                const hasInput = Boolean(posValue || timeValue || statusValue !== "FINISHED");
+                if (!hasInput) return;
+
+                if (statusValue === "DNS") {
+                    details[driver] = { status: "DNS", best_time: timeValue };
+                    return;
+                }
+
+                if (!posValue) {
+                    throw new Error(`Completa la posicion de carrera para ${driver}.`);
+                }
+                if (usedPositions.has(posValue)) {
+                    throw new Error(`Posicion de carrera repetida: ${posValue}.`);
+                }
+                usedPositions.add(posValue);
+                entries.push({ name: driver, position: posValue });
+                details[driver] = {
+                    position: posValue,
+                    best_time: timeValue,
+                    status: statusValue,
+                };
+            });
+
+            entries.sort((a, b) => a.position - b.position);
+            return {
+                orderedNames: entries.map((entry) => entry.name),
+                details,
+            };
+        }
+
         function fillTemplate() {
-            const template = state.participants.map((name, idx) => `${idx + 1}) ${name}`).join("\n");
-            document.getElementById("qualifyingInput").value = template;
-            document.getElementById("classificationInput").value = template;
+            const participants = state.participants || [];
+            participants.forEach((driver, idx) => {
+                const qRow = document.querySelector(`#qualifyingRowsContainer .result-input-row[data-driver="${driver}"]`);
+                const rRow = document.querySelector(`#raceRowsContainer .result-input-row[data-driver="${driver}"]`);
+                const targetPos = String(idx + 1);
+
+                if (qRow) {
+                    const qPos = qRow.querySelector(".result-q-position");
+                    const qTime = qRow.querySelector(".result-q-time");
+                    if (qPos) qPos.value = targetPos;
+                    if (qTime) qTime.value = "";
+                }
+                if (rRow) {
+                    const rPos = rRow.querySelector(".result-r-position");
+                    const rTime = rRow.querySelector(".result-r-time");
+                    const rStatus = rRow.querySelector(".result-r-status");
+                    if (rPos) rPos.value = targetPos;
+                    if (rTime) rTime.value = "";
+                    if (rStatus) rStatus.value = "FINISHED";
+                }
+            });
         }
 
         async function fetchState() {
@@ -3223,6 +3381,8 @@
                     ? selected
                     : state.schedule[0].race_index;
                 renderRaceDetails(selectedRaceIndex);
+                renderParticipantCheckboxes(selectedRaceIndex);
+                renderResultInputRows(selectedRaceIndex);
                 applyRaceTheme(selectedRaceIndex);
             } else {
                 renderRaceDetails(-1);
@@ -3278,20 +3438,9 @@
             const race = state.schedule.find(r => r.race_index === raceIndex);
             if (race) document.getElementById("raceDateInput").value = race.date;
 
-            const qData = state.qualifying[String(raceIndex)];
-            const qDetails = state.qualifyingDetails[String(raceIndex)] || {};
-            document.getElementById("qualifyingInput").value = qData
-                ? qData.map((name, i) => formatQualifyingLine(name, i, qDetails[name])).join("\n")
-                : "";
-
-            const rData = state.results[String(raceIndex)];
-            const rDetails = state.raceDetails[String(raceIndex)] || {};
-            document.getElementById("classificationInput").value = rData
-                ? rData.map((name, i) => formatRaceLine(name, i, rDetails[name])).join("\n")
-                : "";
-
             renderRaceDetails(raceIndex);
             renderParticipantCheckboxes(raceIndex);
+            renderResultInputRows(raceIndex);
             applyRaceTheme(raceIndex);
 
             if (isAuthenticated) {
@@ -3324,15 +3473,14 @@
             }
 
             showStatus(data.message, "success");
-            document.getElementById("classificationInput").value = "";
             await fetchState();
         }
 
         async function saveRaceResult() {
             const raceIndex = Number(document.getElementById("raceSelect").value);
             const dateValue = document.getElementById("raceDateInput").value;
-            const qualifyingText = document.getElementById("qualifyingInput").value.trim();
-            const classificationText = document.getElementById("classificationInput").value.trim();
+            const parsedQualifying = parseResultRows("qualifying");
+            const parsedRace = parseResultRows("race");
 
             const payload = { race_index: raceIndex };
             if (dateValue) payload.date = dateValue;
@@ -3343,18 +3491,16 @@
                 payload.participants_in_race = selectedParticipants;
             }
             
-            if (qualifyingText) {
-                const parsedQualifying = parseDetailedClassification(qualifyingText, "qualifying");
+            if (parsedQualifying.orderedNames.length > 0) {
                 payload.qualifying = parsedQualifying.orderedNames;
                 payload.qualifying_details = parsedQualifying.details;
             }
-            if (classificationText) {
-                const parsedRace = parseDetailedClassification(classificationText, "race");
+            if (parsedRace.orderedNames.length > 0 || Object.keys(parsedRace.details).length > 0) {
                 payload.classification = parsedRace.orderedNames;
                 payload.race_details = parsedRace.details;
             }
 
-            if (!dateValue && !qualifyingText && !classificationText) {
+            if (!dateValue && parsedQualifying.orderedNames.length === 0 && parsedRace.orderedNames.length === 0 && Object.keys(parsedRace.details).length === 0) {
                 showStatus("Completá al menos un campo antes de guardar.", "error");
                 return;
             }
@@ -3383,8 +3529,6 @@
             }
 
             showStatus(data.message, "success");
-            document.getElementById("classificationInput").value = "";
-            document.getElementById("qualifyingInput").value = "";
             document.getElementById("raceDateInput").value = "";
             await fetchState();
         }
@@ -3424,11 +3568,47 @@
         });
 
         safeAddListener("qualifyingImageInput", "change", (e) => safeRun(async () => {
-            await applyOcrToTextarea(e.target.files?.[0], "qualifyingInput", "qualy");
+            const file = e.target.files?.[0];
+            if (!file) return;
+            if (!window.Tesseract) {
+                throw new Error("OCR no disponible. Recarga la pagina e intenta de nuevo.");
+            }
+            showStatus("Procesando imagen de qualy...", "success");
+            const processedCanvas = await preprocessImageForOcr(file);
+            const result = await window.Tesseract.recognize(processedCanvas, "eng", {
+                tessedit_pageseg_mode: window.Tesseract.PSM.SINGLE_BLOCK,
+            });
+            const ranking = extractRankingFromOcrText(result.data.text || "");
+            ranking.forEach((name, idx) => {
+                const row = document.querySelector(`#qualifyingRowsContainer .result-input-row[data-driver="${name}"]`);
+                if (!row) return;
+                const pos = row.querySelector(".result-q-position");
+                if (pos) pos.value = String(idx + 1);
+            });
+            showStatus("Imagen de qualy procesada. Revisa y corrige si hace falta.", "success");
             e.target.value = "";
         }));
         safeAddListener("raceImageInput", "change", (e) => safeRun(async () => {
-            await applyOcrToTextarea(e.target.files?.[0], "classificationInput", "carrera");
+            const file = e.target.files?.[0];
+            if (!file) return;
+            if (!window.Tesseract) {
+                throw new Error("OCR no disponible. Recarga la pagina e intenta de nuevo.");
+            }
+            showStatus("Procesando imagen de carrera...", "success");
+            const processedCanvas = await preprocessImageForOcr(file);
+            const result = await window.Tesseract.recognize(processedCanvas, "eng", {
+                tessedit_pageseg_mode: window.Tesseract.PSM.SINGLE_BLOCK,
+            });
+            const ranking = extractRankingFromOcrText(result.data.text || "");
+            ranking.forEach((name, idx) => {
+                const row = document.querySelector(`#raceRowsContainer .result-input-row[data-driver="${name}"]`);
+                if (!row) return;
+                const pos = row.querySelector(".result-r-position");
+                const status = row.querySelector(".result-r-status");
+                if (pos) pos.value = String(idx + 1);
+                if (status) status.value = "FINISHED";
+            });
+            showStatus("Imagen de carrera procesada. Revisa y corrige si hace falta.", "success");
             e.target.value = "";
         }));
         safeAddListener("exportRacePngBtn", "click", () => safeRun(exportRaceDetailPng));
