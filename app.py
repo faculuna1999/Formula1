@@ -38,7 +38,7 @@ CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME", "").strip()
 CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY", "").strip()
 CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET", "").strip()
 COMISARIO_PUBLIC_ID = "facu-demo/comisario"
-STATE_PUBLIC_ID = "facu-demo/state/season"
+STATE_PUBLIC_ID = "facu-demo/state/season.json"
 TV_VIDEO_CATEGORIES = {
     "epic_fails": "Epic fails",
     "mejores_adelantamientos": "Mejores adelantamientos",
@@ -318,22 +318,26 @@ def load_state_from_cloudinary():
     if not remote_state_is_configured():
         return None
 
-    resource_url = (
-        f"https://api.cloudinary.com/v1_1/{CLOUDINARY_CLOUD_NAME}"
-        f"/resources/raw/upload/{quote(STATE_PUBLIC_ID, safe='')}"
-    )
+    resource_url = f"https://api.cloudinary.com/v1_1/{CLOUDINARY_CLOUD_NAME}/resources/raw/upload"
     response = requests.get(
         resource_url,
+        params={
+            "prefix": "facu-demo/state/",
+            "max_results": 100,
+        },
         auth=(CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET),
         timeout=30,
     )
-    if response.status_code == 404:
-        return None
     if response.status_code >= 400:
         logger.warning("No se pudo consultar el estado remoto en Cloudinary: %s", response.text[:250])
         return None
 
-    secure_url = (response.json().get("secure_url") or "").strip()
+    resources = response.json().get("resources") or []
+    secure_url = ""
+    for resource in resources:
+        if (resource.get("public_id") or "").strip() == STATE_PUBLIC_ID:
+            secure_url = (resource.get("secure_url") or "").strip()
+            break
     if not secure_url:
         logger.warning("Cloudinary no devolvio secure_url para el estado remoto.")
         return None
@@ -609,23 +613,9 @@ def load_seed_state():
         return None
 
 
-def load_state():
-    if not DATA_FILE.exists():
-        state = load_state_from_cloudinary()
-        if state is None:
-            state = load_seed_state() or build_default_state()
-        if cloudinary_is_configured() and not any(state.get("tv_clips", {}).get(category) for category in TV_VIDEO_CATEGORIES):
-            state["tv_clips"] = recover_tv_clips_from_cloudinary()
-        write_local_state(state)
-        return state
-
-    try:
-        state = json.loads(DATA_FILE.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        logger.warning("Archivo de estado invalido. Se recrea estado por defecto.")
-        state = load_state_from_cloudinary() or load_seed_state() or build_default_state()
-        write_local_state(state)
-        return state
+def normalize_state(state):
+    if not isinstance(state, dict):
+        state = build_default_state()
 
     participants = state.get("participants", [])
     if not isinstance(participants, list):
@@ -652,7 +642,6 @@ def load_state():
     state["dates"] = state.get("dates", {})
     state["season_start_date"] = state.get("season_start_date", next_monday().isoformat())
     cloudinary_resources = fetch_cloudinary_resources_map() if cloudinary_is_configured() else {}
-    # Ensure teams are assigned for all participants
     existing_teams = state.get("teams", {})
     existing_images = state.get("player_images", {})
     new_teams = {}
@@ -686,7 +675,28 @@ def load_state():
     has_any_tv_clip = any(state["tv_clips"].get(category) for category in TV_VIDEO_CATEGORIES)
     if cloudinary_is_configured() and not has_any_tv_clip:
         state["tv_clips"] = recover_tv_clips_from_cloudinary()
+
     return state
+
+
+def load_state():
+    if not DATA_FILE.exists():
+        state = load_state_from_cloudinary()
+        if state is None:
+            state = load_seed_state() or build_default_state()
+        state = normalize_state(state)
+        write_local_state(state)
+        return state
+
+    try:
+        state = json.loads(DATA_FILE.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        logger.warning("Archivo de estado invalido. Se recrea estado por defecto.")
+        state = load_state_from_cloudinary() or load_seed_state() or build_default_state()
+        state = normalize_state(state)
+        write_local_state(state)
+        return state
+    return normalize_state(state)
 
 
 def normalize_participants(raw_names):
@@ -1279,6 +1289,16 @@ def api_set_result():
     # Resultado de carrera — opcional
     classification = data.get("classification")
     race_details = data.get("race_details")
+    participants_in_race = data.get("participants_in_race")
+    
+    # Validar lista opcional de participantes que corrieron (para DNS de no participantes)
+    if participants_in_race is not None:
+        if not isinstance(participants_in_race, list):
+            return jsonify({"status": "error", "message": "participants_in_race debe ser una lista."}), 400
+        for driver_name in participants_in_race:
+            if driver_name not in state["participants"]:
+                return jsonify({"status": "error", "message": f"Piloto no registrado en participants_in_race: {driver_name}"}), 400
+    
     if race_details is not None:
         if not isinstance(race_details, dict):
             return jsonify({"status": "error", "message": "race_details debe ser un objeto."}), 400
@@ -1288,12 +1308,24 @@ def api_set_result():
             if not isinstance(detail, dict):
                 return jsonify({"status": "error", "message": "Cada detalle de carrera debe ser un objeto."}), 400
             detail["status"] = normalize_race_status(detail.get("status"))
+    else:
+        race_details = {}
+    
+    # Si se especifica participants_in_race, agregar DNS para pilotos que no corrieron
+    if participants_in_race is not None:
+        for driver_name in state["participants"]:
+            if driver_name not in participants_in_race:
+                # Piloto no corrio: marcar como DNS
+                if driver_name not in race_details:
+                    race_details[driver_name] = {}
+                race_details[driver_name]["status"] = "DNS"
+    
     if classification is not None:
         r_err = validate_classification(classification, state["participants"])
         if r_err:
             return jsonify({"status": "error", "message": f"Resultado de carrera: {r_err}"}), 400
         state["results"][str(race_index)] = classification
-    if race_details is not None:
+    if race_details:
         state["race_details"][str(race_index)] = race_details
 
     save_state(state)
